@@ -393,6 +393,12 @@
       <input type="file" id="file-input" accept=".json,application/json" hidden>
     </div>
 
+    <div class="save-card" id="diag-card" hidden>
+      <h3>Dernière erreur</h3>
+      <p id="diag-text"></p>
+      <button class="alt" id="btn-diag-copy">Copier le détail</button>
+    </div>
+
     <div class="save-card">
       <h3>État du stockage</h3>
       <p id="storage-info">Vérification…</p>
@@ -696,7 +702,7 @@ var SESS="jisho-session", BASE="jisho-base";
 var tokenClient=null, accessToken=null, tokenExpiry=0;
 var account=null;          /* {email, ts} */
 var driveFolderId=null, driveFileId=null;
-var syncing=false, syncQueued=false, autoSyncTimer=null;
+var syncing=false, syncQueued=false, autoSyncTimer=null, syncError="";
 var pendingConflicts=null, conflictChoices=null, conflictResolve=null;
 
 function loadSession(){
@@ -743,26 +749,41 @@ function initTokenClient(){
   });
 }
 /* interactive=true autorise l'ouverture d'une fenêtre Google ; false = renouvellement silencieux */
+var tokenInFlight=null;
 function getToken(interactive){
-  return new Promise(function(resolve, reject){
-    if(accessToken && Date.now()<tokenExpiry-60000) return resolve(accessToken);
-    if(!navigator.onLine) return reject(new Error("offline"));
+  if(accessToken && Date.now()<tokenExpiry-60000) return Promise.resolve(accessToken);
+  if(!navigator.onLine) return Promise.reject(new Error("offline"));
+  /* Une seule demande de jeton à la fois : deux appels simultanés
+     écraseraient mutuellement le callback du client GIS. */
+  if(tokenInFlight) return tokenInFlight;
+  tokenInFlight=new Promise(function(resolve, reject){
     initTokenClient();
-    if(!tokenClient) return reject(new Error("gis"));
+    if(!tokenClient){ reject(new Error("gis")); return; }
+    var done=false;
+    var guard=setTimeout(function(){
+      if(!done){ done=true; reject(new Error("timeout")); }
+    }, 60000);
     tokenClient.callback=function(resp){
+      if(done) return; done=true; clearTimeout(guard);
       if(resp && resp.access_token){
         accessToken=resp.access_token;
         tokenExpiry=Date.now()+((resp.expires_in||3600)*1000);
         resolve(accessToken);
       } else reject(new Error((resp&&resp.error)||"token"));
     };
-    tokenClient.error_callback=function(err){ reject(new Error((err&&err.type)||"token")); };
+    tokenClient.error_callback=function(err){
+      if(done) return; done=true; clearTimeout(guard);
+      reject(new Error((err&&err.type)||"token"));
+    };
     try{
-      tokenClient.requestAccessToken({prompt: interactive ? "" : "none"});
-    }catch(e){ reject(e); }
+      tokenClient.requestAccessToken({prompt: interactive ? "consent" : ""});
+    }catch(e){ if(!done){ done=true; clearTimeout(guard); reject(e); } }
   });
+  tokenInFlight.catch(function(){}).then(function(){ tokenInFlight=null; });
+  return tokenInFlight;
 }
 
+var lastError="";
 function api(url, opts){
   opts=opts||{};
   return getToken(false).then(function(tok){
@@ -770,16 +791,32 @@ function api(url, opts){
     opts.headers["Authorization"]="Bearer "+tok;
     return fetch(url, opts);
   }).then(function(r){
-    if(r.status===401){ accessToken=null; tokenExpiry=0; throw new Error("auth"); }
-    if(!r.ok) throw new Error("http"+r.status);
-    return r;
+    if(r.ok) return r;
+    return r.text().then(function(body){
+      var detail=body;
+      try{
+        var j=JSON.parse(body);
+        if(j.error){ detail=(j.error.message||j.error.status||"")+
+          (j.error.errors&&j.error.errors[0]?" ["+j.error.errors[0].reason+"]":""); }
+      }catch(e){}
+      lastError="HTTP "+r.status+" — "+String(detail).slice(0,300);
+      if(r.status===401){ accessToken=null; tokenExpiry=0; throw new Error("auth"); }
+      if(r.status===403 && /insufficient|scope/i.test(detail)) throw new Error("scope");
+      if(r.status===403) throw new Error("forbidden");
+      throw new Error("http"+r.status);
+    });
   });
 }
 
+/* L'adresse email est purement cosmétique. Le scope drive.file ne donne pas
+   accès au profil : cet appel échoue le plus souvent, et c'est sans conséquence.
+   Il est volontairement fait hors de api() pour ne jamais toucher au jeton. */
 function fetchEmail(){
-  return api("https://www.googleapis.com/oauth2/v3/userinfo")
-    .then(function(r){ return r.json(); })
-    .then(function(j){ return j.email||""; })
+  if(!accessToken) return Promise.resolve("");
+  return fetch("https://www.googleapis.com/oauth2/v3/userinfo",{
+    headers:{"Authorization":"Bearer "+accessToken}
+  }).then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){ return (j&&j.email)||""; })
     .catch(function(){ return ""; });
 }
 
@@ -855,18 +892,18 @@ function writeRemote(list){
         method:"PATCH", headers:{"Content-Type":"application/json"}, body:body
       });
     }
+    /* Création en deux temps : d'abord la fiche du fichier, puis son contenu.
+       Plus simple et plus fiable qu'un envoi multipart assemblé à la main. */
     return ensureFolder().then(function(fid){
-      var meta={name:FILE_NAME, parents:[fid]};
-      var boundary="-------jisho"+Date.now();
-      var multipart=
-        "--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+
-        JSON.stringify(meta)+"\r\n--"+boundary+
-        "\r\nContent-Type: application/json\r\n\r\n"+body+"\r\n--"+boundary+"--";
-      return api("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{
-        method:"POST", headers:{"Content-Type":"multipart/related; boundary="+boundary},
-        body:multipart
-      }).then(function(r){ return r.json(); })
-        .then(function(f){ driveFileId=f.id; return f; });
+      return api("https://www.googleapis.com/drive/v3/files?fields=id",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:FILE_NAME, parents:[fid], mimeType:"application/json"})
+      }).then(function(r){ return r.json(); });
+    }).then(function(f){
+      driveFileId=f.id;
+      return api("https://www.googleapis.com/upload/drive/v3/files/"+f.id+"?uploadType=media",{
+        method:"PATCH", headers:{"Content-Type":"application/json"}, body:body
+      });
     });
   });
 }
@@ -1012,13 +1049,26 @@ function sync(interactive){
   }).catch(function(err){
     syncing=false;
     var m=String(err&&err.message||err);
-    if(m==="auth"||m==="token"){
+    syncError=m;
+    if(m==="auth"||m==="token"||m==="timeout"){
       chip("Reconnexion nécessaire","err");
       if(interactive) signIn();
     } else if(m==="offline"){
       chip("Hors ligne — synchro reportée","err");
+    } else if(m==="scope"){
+      chip("Autorisation Drive manquante","err");
+      if(interactive) alert("L'application n'a pas reçu l'autorisation d'accéder à Drive.\n\n"+
+        "Déconnecte-toi puis reconnecte-toi, et vérifie que la case autorisant Jisho à gérer "+
+        "ses fichiers Drive est bien cochée sur l'écran Google.\n\nDétail : "+lastError);
+    } else if(m==="forbidden"){
+      chip("Accès refusé par Google","err");
+      if(interactive) alert("Google a refusé l'accès à l'API Drive.\n\n"+
+        "Vérifie dans la console Google Cloud que l'API Google Drive est bien activée "+
+        "pour le projet Jisho.\n\nDétail : "+lastError);
     } else {
       chip("Échec de la synchronisation","err");
+      if(interactive) alert("La synchronisation a échoué.\n\nDétail technique :\n"+
+        (lastError||m)+"\n\nTu peux copier ce message pour diagnostic.");
     }
     renderSave();
     return false;
@@ -1037,12 +1087,14 @@ function signIn(){
     return;
   }
   getToken(true).then(function(){
-    return fetchEmail();
-  }).then(function(email){
-    account={email:email, ts:Date.now()};
+    account={email:"", ts:Date.now()};
     saveSession();
     closeGate();
     renderSave();
+    /* L'email est récupéré en arrière-plan, sans jamais bloquer la synchro. */
+    fetchEmail().then(function(email){
+      if(email && account){ account.email=email; saveSession(); renderSave(); }
+    });
     return sync(true);
   }).catch(function(err){
     var m=String(err&&err.message||err);
@@ -1076,6 +1128,13 @@ document.getElementById("gate-offline").addEventListener("click", function(){
 document.getElementById("btn-signin").addEventListener("click", signIn);
 document.getElementById("btn-signout").addEventListener("click", signOut);
 document.getElementById("btn-sync").addEventListener("click", function(){ sync(true); });
+document.getElementById("btn-diag-copy").addEventListener("click", function(){
+  var t=(lastError||syncError||"");
+  if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){
+    chip("Détail copié","ok");
+  }).catch(function(){ prompt("Copie ce texte :", t); });
+  else prompt("Copie ce texte :", t);
+});
 
 window.addEventListener("online", function(){ if(account) scheduleSync(); });
 
@@ -1507,6 +1566,12 @@ function renderSave(){
     sBadge.innerHTML='<span class="badge warn">Synchronisation inactive</span>';
     bSync.disabled=true;
   }
+
+  var dc=document.getElementById("diag-card");
+  if(lastError||syncError){
+    dc.hidden=false;
+    document.getElementById("diag-text").textContent=(lastError||syncError);
+  } else dc.hidden=true;
 
   var info=document.getElementById("storage-info");
   var base=words.length+" mots enregistrés sur cet appareil.";

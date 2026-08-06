@@ -4,7 +4,7 @@
    en cache : ils échouent proprement hors ligne et la synchronisation
    reprend au retour de la connexion. */
 
-var CACHE = "jisho-v1";
+var CACHE = "jisho-v2";
 
 var ASSETS = [
   "./",
