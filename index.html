@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>語彙帳 — Carnet de vocabulaire</title>
+<meta name="theme-color" content="#131B30">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  @font-face{font-family:'Spectral';font-style:normal;font-weight:400;font-display:swap;
+    src:url('./fonts/spectral-latin-400-normal.woff2') format('woff2');}
+  @font-face{font-family:'Spectral';font-style:normal;font-weight:500;font-display:swap;
+    src:url('./fonts/spectral-latin-500-normal.woff2') format('woff2');}
+  @font-face{font-family:'Spectral';font-style:normal;font-weight:600;font-display:swap;
+    src:url('./fonts/spectral-latin-600-normal.woff2') format('woff2');}
+  @font-face{font-family:'Spectral';font-style:italic;font-weight:400;font-display:swap;
+    src:url('./fonts/spectral-latin-400-italic.woff2') format('woff2');}
+  @font-face{font-family:'Noto Serif JP';font-style:normal;font-weight:500;font-display:swap;
+    src:url('./fonts/noto-serif-jp-japanese-500-normal.woff2') format('woff2');}
+  @font-face{font-family:'Noto Serif JP';font-style:normal;font-weight:700;font-display:swap;
+    src:url('./fonts/noto-serif-jp-japanese-700-normal.woff2') format('woff2');}
+</style>
+<style>
+  :root{
+    --indigo-900:#131B30; --indigo-800:#1B2740; --indigo-700:#243452; --indigo-600:#2E4166;
+    --paper:#F5F0E3; --paper-dim:#E6DFCC; --ink:#232323; --ink-soft:#5F5A4A;
+    --hanko:#B33A3A; --hanko-dark:#8F2C2C; --gold:#C9A661; --gold-soft:rgba(201,166,97,0.28);
+    --jade:#5C8A72;
+    --shadow: 0 8px 22px rgba(0,0,0,0.35);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--indigo-900);
+    background-image:radial-gradient(circle at 15% -5%, rgba(201,166,97,0.07), transparent 45%),
+                     radial-gradient(circle at 95% 105%, rgba(179,58,58,0.06), transparent 50%);
+    background-attachment:fixed;
+    color:var(--paper); font-family:'Spectral',Georgia,serif;
+    display:flex; justify-content:center;
+  }
+  #app{width:100%;max-width:520px;min-height:100vh;display:flex;flex-direction:column;position:relative;}
+
+  header.top{display:flex;align-items:center;gap:12px;padding:20px 18px 12px;}
+  .hanko{flex:none;width:42px;height:42px;border-radius:50%;background:var(--hanko);color:var(--paper);
+    display:flex;align-items:center;justify-content:center;font-family:'Noto Serif JP',serif;font-weight:700;
+    font-size:20px;box-shadow:0 4px 12px rgba(179,58,58,0.45);transform:rotate(-4deg);cursor:pointer;}
+  header.top h1{margin:0;font-family:'Noto Serif JP',serif;font-size:20px;letter-spacing:.02em;}
+  header.top .sub{margin:1px 0 0;font-size:11.5px;color:var(--gold);font-style:italic;}
+  .back-btn{background:none;border:none;color:var(--gold);font-family:'Spectral',serif;font-size:14px;
+    padding:0;cursor:pointer;display:flex;align-items:center;gap:6px;}
+
+  .screen{display:none;flex:1;padding:0 18px 120px;}
+  .screen.active{display:block;}
+
+  /* --- Accueil : vignettes de catégorie --- */
+  .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+  .cat-card{position:relative;background:var(--paper);color:var(--ink);border-radius:11px;
+    padding:16px 14px 14px;text-align:left;border:none;border-left:4px solid var(--gold);
+    cursor:pointer;box-shadow:var(--shadow);overflow:hidden;font-family:'Spectral',serif;}
+  .cat-card .kanji{font-family:'Noto Serif JP',serif;font-size:27px;font-weight:700;line-height:1;
+    display:block;color:var(--ink);}
+  .cat-card .name{display:block;margin-top:7px;font-size:14.5px;font-weight:600;color:var(--ink);}
+  .cat-card .count{display:block;margin-top:2px;font-size:11.5px;color:var(--ink-soft);font-style:italic;}
+  .cat-card .ghost{position:absolute;right:-8px;bottom:-16px;font-family:'Noto Serif JP',serif;
+    font-size:62px;color:rgba(35,35,35,0.055);line-height:1;pointer-events:none;}
+  .cat-card.is-small{padding:12px 13px;}
+  .cat-card.is-small .kanji{font-size:20px;}
+  .cat-card.is-small .name{font-size:13px;margin-top:5px;}
+  .cat-card.accent-red{border-left-color:var(--hanko);}
+  .cat-card.accent-jade{border-left-color:var(--jade);}
+  .cat-card.accent-blue{border-left-color:var(--indigo-600);}
+
+  .section-label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);
+    margin:22px 0 9px;display:flex;align-items:center;gap:10px;}
+  .section-label::after{content:"";flex:1;height:1px;background:var(--gold-soft);}
+
+  .wide-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--indigo-800);border:1px solid var(--gold-soft);color:var(--paper);border-radius:11px;
+    padding:15px 16px;font-family:'Spectral',serif;font-size:15px;cursor:pointer;text-align:left;}
+  .wide-btn .jp{font-family:'Noto Serif JP',serif;color:var(--gold);font-size:16px;}
+  .wide-btn small{display:block;font-size:11.5px;color:rgba(245,240,227,.55);font-style:italic;margin-top:2px;}
+
+  .stat-row{display:flex;gap:9px;margin-top:12px;}
+  .stat{flex:1;background:var(--indigo-800);border:1px solid var(--gold-soft);border-radius:10px;
+    padding:12px 8px;text-align:center;}
+  .stat .n{font-family:'Noto Serif JP',serif;font-size:21px;color:var(--gold);}
+  .stat .l{font-size:10.5px;color:rgba(245,240,227,.6);margin-top:2px;}
+
+  /* --- Liste --- */
+  .search-wrap{margin-bottom:11px;}
+  .search-wrap input{width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--gold-soft);
+    background:var(--indigo-800);color:var(--paper);font-family:'Spectral',serif;font-size:15px;}
+  .search-wrap input::placeholder{color:rgba(245,240,227,.4);}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding:0 18px 11px;margin:0 -18px 4px;
+    -ms-overflow-style:none;scrollbar-width:none;}
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{flex:none;background:var(--indigo-800);border:1px solid var(--gold-soft);color:rgba(245,240,227,.75);
+    border-radius:999px;padding:7px 13px;font-size:12.5px;font-family:'Spectral',serif;cursor:pointer;white-space:nowrap;}
+  .chip.active{background:var(--gold);color:var(--indigo-900);border-color:var(--gold);font-weight:600;}
+
+  .word-list{display:flex;flex-direction:column;gap:9px;}
+  .word-card{position:relative;background:var(--paper);color:var(--ink);border-radius:8px;padding:13px 15px;
+    box-shadow:var(--shadow);cursor:pointer;border-left:3px solid var(--gold);}
+  .word-card.accent-red{border-left-color:var(--hanko);}
+  .word-card.accent-jade{border-left-color:var(--jade);}
+  .word-card.accent-blue{border-left-color:var(--indigo-600);}
+  .word-card .jw{font-family:'Noto Serif JP',serif;font-weight:700;font-size:21px;line-height:1.5;}
+  .word-card .jw rt{font-family:'Spectral',serif;font-size:10.5px;color:var(--ink-soft);font-weight:400;}
+  .word-card .tr{margin-top:4px;font-size:14px;color:var(--ink-soft);font-style:italic;padding-right:34px;}
+  .word-card .th{margin-top:6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);}
+  .stamp{position:absolute;top:11px;right:12px;width:25px;height:25px;border-radius:50%;
+    border:2px solid var(--hanko);color:var(--hanko);display:flex;align-items:center;justify-content:center;
+    font-family:'Noto Serif JP',serif;font-size:11px;font-weight:700;transform:rotate(9deg);opacity:.8;}
+
+  .empty{text-align:center;padding:54px 20px;color:rgba(245,240,227,.5);}
+  .empty .big{font-family:'Noto Serif JP',serif;font-size:32px;color:var(--gold);display:block;margin-bottom:9px;}
+  .empty p{font-size:13.5px;line-height:1.55;margin:0;}
+
+  /* --- FAB, bandeau, nav --- */
+  .fab{position:fixed;bottom:82px;right:calc(50% - 260px + 18px);width:54px;height:54px;border-radius:50%;
+    background:var(--hanko);color:var(--paper);border:none;font-size:27px;line-height:1;
+    box-shadow:0 8px 20px rgba(179,58,58,.5);cursor:pointer;z-index:30;}
+  @media (max-width:556px){.fab{right:18px;}}
+
+  .sync-bar{position:fixed;bottom:calc(58px + env(safe-area-inset-bottom));left:0;right:0;z-index:26;
+    display:flex;justify-content:center;}
+  .sync-bar .inner{width:100%;max-width:520px;margin:0 10px;background:var(--indigo-700);
+    border:1px solid var(--gold-soft);border-radius:10px;padding:9px 12px;display:flex;align-items:center;
+    gap:10px;font-size:12.5px;box-shadow:var(--shadow);}
+  .sync-bar .inner span{flex:1;color:rgba(245,240,227,.85);}
+  .sync-bar .inner button{background:var(--gold);color:var(--indigo-900);border:none;border-radius:7px;
+    padding:7px 12px;font-family:'Spectral',serif;font-weight:600;font-size:12.5px;cursor:pointer;flex:none;}
+  .sync-bar .inner .x{background:none;color:rgba(245,240,227,.5);padding:6px;font-size:15px;}
+
+  nav.bottom{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;
+    background:rgba(19,27,48,.97);border-top:1px solid var(--gold-soft);z-index:25;
+    padding-bottom:env(safe-area-inset-bottom);}
+  nav.bottom .inner{width:100%;max-width:520px;display:flex;}
+  nav.bottom button{flex:1;background:none;border:none;color:var(--paper);opacity:.45;padding:11px 4px 13px;
+    display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-family:'Spectral',serif;}
+  nav.bottom button .jp{font-family:'Noto Serif JP',serif;font-size:15px;}
+  nav.bottom button .fr{font-size:10px;letter-spacing:.05em;text-transform:uppercase;}
+  nav.bottom button.active{opacity:1;color:var(--gold);}
+
+  /* --- Modale --- */
+  .overlay{position:fixed;inset:0;background:rgba(8,12,22,.72);display:flex;align-items:flex-end;
+    justify-content:center;z-index:60;}
+  .sheet{width:100%;max-width:520px;background:var(--paper);color:var(--ink);border-radius:16px 16px 0 0;
+    padding:20px 18px calc(24px + env(safe-area-inset-bottom));max-height:93vh;overflow-y:auto;}
+  .sheet h2{font-family:'Noto Serif JP',serif;margin:0 0 15px;font-size:18px;}
+  .field{display:block;font-size:12px;color:var(--ink-soft);margin-bottom:12px;}
+  .field input,.field select{display:block;width:100%;margin-top:4px;padding:10px 11px;border-radius:8px;
+    border:1px solid rgba(35,35,35,.22);background:#fff;font-family:'Spectral',serif;font-size:16px;color:var(--ink);}
+  .two{display:flex;gap:10px;}
+  .two .field{flex:1;}
+  .sheet-actions{display:flex;gap:8px;margin-top:6px;}
+  .sheet-actions button{padding:12px 10px;border-radius:9px;border:none;font-family:'Spectral',serif;
+    font-weight:600;font-size:14.5px;cursor:pointer;flex:1;}
+  .sheet-actions button.primary{background:var(--hanko);color:var(--paper);}
+  .sheet-actions button.ghost{background:var(--paper-dim);color:var(--ink);}
+  .sheet-actions button.destructive{background:transparent;color:var(--hanko);border:1px solid var(--hanko);
+    flex:none;padding:12px 14px;}
+
+  /* --- Bloc prononciation --- */
+  .pron{background:var(--paper-dim);border-radius:10px;padding:13px 14px;margin-bottom:16px;
+    border-left:3px solid var(--gold);}
+  .pron .head{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:7px;}
+  .pron .jp{font-family:'Noto Serif JP',serif;font-size:23px;font-weight:700;line-height:1.5;}
+  .pron .jp rt{font-family:'Spectral',serif;font-size:11px;color:var(--ink-soft);font-weight:400;}
+  .pron .rows{margin-top:9px;display:flex;flex-direction:column;gap:5px;}
+  .pron .row{display:flex;align-items:baseline;gap:9px;font-size:14px;}
+  .pron .row b{flex:none;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);
+    font-weight:600;width:62px;}
+  .pron .row .val{font-weight:600;letter-spacing:.02em;color:var(--ink);}
+  .pron .row .val.fr{color:var(--hanko-dark);font-style:italic;}
+  .pron .none{font-size:12.5px;color:var(--ink-soft);font-style:italic;}
+
+  /* --- Révision --- */
+  .panel{background:var(--paper);color:var(--ink);border-radius:12px;padding:18px;box-shadow:var(--shadow);}
+  .panel h3{margin:0 0 13px;font-family:'Noto Serif JP',serif;font-size:16.5px;}
+  .radio-list{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
+  .radio-list label{display:flex;align-items:center;gap:9px;padding:10px 11px;border:1px solid rgba(35,35,35,.16);
+    border-radius:8px;font-size:14px;cursor:pointer;}
+  .radio-list input{accent-color:var(--hanko);flex:none;}
+  .go{width:100%;padding:14px;border-radius:10px;border:none;background:var(--hanko);color:var(--paper);
+    font-family:'Noto Serif JP',serif;font-size:16px;cursor:pointer;}
+  .go:disabled{opacity:.38;}
+  .note{font-size:12px;color:var(--ink-soft);margin:10px 0 0;text-align:center;}
+
+  .progress{display:flex;align-items:center;gap:10px;margin:6px 0 14px;}
+  .progress .bar{flex:1;height:4px;background:var(--indigo-700);border-radius:2px;overflow:hidden;}
+  .progress .bar i{display:block;height:100%;background:var(--gold);width:0;transition:width .25s;}
+  .progress .txt{font-size:12px;color:var(--gold);letter-spacing:.05em;}
+
+  .card{background:var(--paper);color:var(--ink);border-radius:15px;min-height:210px;display:flex;
+    flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 20px;
+    box-shadow:var(--shadow);gap:12px;}
+  .card .eyebrow{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--gold);}
+  .card .q{font-family:'Noto Serif JP',serif;font-size:29px;font-weight:700;line-height:1.5;}
+  .card .q rt{font-family:'Spectral',serif;font-size:12px;color:var(--ink-soft);font-weight:400;}
+  .card .q.fr{font-family:'Spectral',serif;font-size:23px;font-style:italic;font-weight:500;}
+  .card .a{font-size:20px;color:var(--hanko-dark);border-top:1px dashed rgba(201,166,97,.55);
+    padding-top:13px;width:100%;font-family:'Noto Serif JP',serif;font-weight:700;line-height:1.5;}
+  .card .a rt{font-family:'Spectral',serif;font-size:11px;color:var(--ink-soft);font-weight:400;}
+  .card .a.fr{font-family:'Spectral',serif;font-style:italic;font-weight:500;}
+  .card .a-rom{font-size:12.5px;color:var(--ink-soft);letter-spacing:.04em;margin-top:-4px;}
+  .reveal{margin-top:15px;width:100%;padding:13px;border-radius:10px;border:1.5px solid var(--gold);
+    background:transparent;color:var(--gold);font-family:'Spectral',serif;font-size:15px;cursor:pointer;}
+  .judge{display:flex;gap:9px;margin-top:15px;}
+  .judge button{flex:1;padding:13px;border-radius:10px;border:none;font-family:'Spectral',serif;
+    font-weight:600;font-size:14.5px;cursor:pointer;}
+  .judge .no{background:var(--indigo-800);color:var(--paper);border:1px solid var(--hanko);}
+  .judge .yes{background:var(--hanko);color:var(--paper);}
+  .quit{width:100%;margin-top:12px;background:none;border:none;color:rgba(245,240,227,.45);
+    font-family:'Spectral',serif;font-size:13px;cursor:pointer;padding:8px;}
+
+  .score{font-family:'Noto Serif JP',serif;font-size:36px;color:var(--hanko);margin:6px 0 2px;}
+  .review-list{margin-top:16px;text-align:left;border-top:1px solid rgba(35,35,35,.12);padding-top:12px;}
+  .review-list ul{margin:0;padding:0;}
+  .review-list li{font-size:13.5px;margin-bottom:5px;list-style:none;}
+  .review-list li b{font-family:'Noto Serif JP',serif;}
+
+  /* --- Sauvegarde --- */
+  .save-card{background:var(--indigo-800);border:1px solid var(--gold-soft);border-radius:11px;
+    padding:16px;margin-bottom:11px;}
+  .save-card h3{margin:0 0 6px;font-family:'Noto Serif JP',serif;font-size:15px;color:var(--gold);}
+  .save-card p{margin:0 0 12px;font-size:13px;line-height:1.55;color:rgba(245,240,227,.72);}
+  .save-card button{width:100%;padding:12px;border-radius:9px;border:none;background:var(--gold);
+    color:var(--indigo-900);font-family:'Spectral',serif;font-weight:600;font-size:14.5px;cursor:pointer;}
+  .save-card button.alt{background:transparent;color:var(--gold);border:1px solid var(--gold);margin-top:8px;}
+  .save-card button.warn{background:transparent;color:#E89A9A;border:1px solid #E89A9A;margin-top:8px;}
+  .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;margin-bottom:9px;}
+  .badge.ok{background:rgba(92,138,114,.25);color:#9BD3B2;border:1px solid rgba(92,138,114,.5);}
+  .badge.warn{background:rgba(179,58,58,.2);color:#E89A9A;border:1px solid rgba(179,58,58,.5);}
+  .gate-sheet{text-align:center;border-radius:16px;max-width:400px;margin:0 10px 10px;
+    padding-bottom:26px;}
+  .gate-mark{width:56px;height:56px;border-radius:50%;background:var(--hanko);color:var(--paper);
+    display:flex;align-items:center;justify-content:center;font-family:'Noto Serif JP',serif;
+    font-weight:700;font-size:26px;margin:4px auto 12px;transform:rotate(-4deg);}
+  .gate-sheet h2{margin:0 0 8px;}
+  .gate-txt{font-size:14px;line-height:1.55;color:var(--ink-soft);margin:0 0 18px;}
+  .gate-note{font-size:12px;color:var(--ink-soft);margin:12px 0 0;line-height:1.5;}
+  .conflict-intro{font-size:13.5px;line-height:1.55;color:var(--ink-soft);margin:0 0 14px;}
+  .cf-item{border:1px solid rgba(35,35,35,.16);border-radius:9px;padding:11px 12px;margin-bottom:9px;}
+  .cf-word{font-family:'Noto Serif JP',serif;font-weight:700;font-size:18px;margin-bottom:8px;}
+  .cf-opts{display:flex;gap:8px;}
+  .cf-opt{flex:1;border:1px solid rgba(35,35,35,.2);border-radius:8px;padding:9px 10px;
+    background:#fff;cursor:pointer;text-align:left;font-family:'Spectral',serif;}
+  .cf-opt.sel{border-color:var(--hanko);background:rgba(179,58,58,.07);}
+  .cf-opt .cf-src{font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);
+    display:block;margin-bottom:3px;}
+  .cf-opt .cf-val{font-size:13px;color:var(--ink);line-height:1.4;}
+  .sync-chip{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:40;
+    background:var(--indigo-700);border:1px solid var(--gold-soft);border-radius:999px;
+    padding:6px 14px;font-size:12px;color:var(--paper);box-shadow:var(--shadow);
+    display:flex;align-items:center;gap:7px;}
+  .sync-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);}
+  .sync-chip.err .dot{background:#E89A9A;}
+  .sync-chip.ok .dot{background:#9BD3B2;}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="top">
+    <div class="hanko" id="logo">語</div>
+    <div style="flex:1">
+      <h1 id="top-title">語彙帳</h1>
+      <p class="sub" id="top-sub">Mon carnet de vocabulaire japonais</p>
+    </div>
+    <button class="back-btn" id="back" hidden>← Retour</button>
+  </header>
+
+  <section class="screen active" id="s-home">
+    <div class="home-grid" id="home-main"></div>
+    <div class="section-label">Autres catégories</div>
+    <div class="home-grid" id="home-extra"></div>
+    <div class="section-label">Réviser</div>
+    <button class="wide-btn" id="go-quiz-all">
+      <span><span class="jp">復習をはじめる</span><small>Lancer une séance sur tout le carnet</small></span>
+      <span style="color:var(--gold)">›</span>
+    </button>
+    <div class="stat-row">
+      <div class="stat"><div class="n" id="st-total">0</div><div class="l">mots</div></div>
+      <div class="stat"><div class="n" id="st-done">0</div><div class="l">acquis</div></div>
+      <div class="stat"><div class="n" id="st-todo">0</div><div class="l">à revoir</div></div>
+    </div>
+  </section>
+
+  <section class="screen" id="s-list">
+    <div class="search-wrap"><input id="search" type="text" placeholder="Chercher un mot, une lecture, une traduction…"></div>
+    <div class="chips" id="theme-chips"></div>
+    <div class="word-list" id="word-list"></div>
+    <div class="empty" id="list-empty" hidden>
+      <span class="big">空</span><p id="list-empty-txt">Aucun mot ici pour l'instant.</p>
+    </div>
+  </section>
+
+  <section class="screen" id="s-quiz">
+    <div id="q-setup">
+      <div class="panel">
+        <h3>Que veux-tu réviser ?</h3>
+        <label class="field">Catégorie<select id="q-type"></select></label>
+        <label class="field">Thème<select id="q-theme"></select></label>
+        <h3 style="margin-top:4px">Dans quel sens ?</h3>
+        <div class="radio-list">
+          <label><input type="radio" name="dir" value="jp-fr" checked> 日 → 仏 &nbsp;· je vois le japonais</label>
+          <label><input type="radio" name="dir" value="fr-jp"> 仏 → 日 &nbsp;· je vois le français</label>
+          <label><input type="radio" name="dir" value="mixed"> Mélangé · les deux au hasard</label>
+        </div>
+        <h3 style="margin-top:4px">Combien de mots ?</h3>
+        <div class="radio-list">
+          <label><input type="radio" name="len" value="10" checked> 10 mots · séance rapide</label>
+          <label><input type="radio" name="len" value="25"> 25 mots</label>
+          <label><input type="radio" name="len" value="0"> Tous</label>
+        </div>
+        <label class="field" style="display:flex;align-items:center;gap:9px;margin-bottom:16px">
+          <input type="checkbox" id="q-priority" style="width:auto;margin:0;accent-color:var(--hanko)">
+          <span>Prioriser les mots que je rate le plus</span>
+        </label>
+        <button class="go" id="q-start">はじめる — Commencer</button>
+        <p class="note" id="q-note"></p>
+      </div>
+    </div>
+
+    <div id="q-play" hidden>
+      <div class="progress"><span class="txt" id="q-prog">1 / 10</span><span class="bar"><i id="q-bar"></i></span></div>
+      <div class="card">
+        <div class="eyebrow" id="q-eyebrow"></div>
+        <div class="q" id="q-question"></div>
+        <div class="a" id="q-answer" hidden></div>
+        <div class="a-rom" id="q-answer-rom" hidden></div>
+      </div>
+      <button class="reveal" id="q-reveal">Voir la réponse</button>
+      <div class="judge" id="q-judge" hidden>
+        <button class="no" id="q-no">✗ À revoir</button>
+        <button class="yes" id="q-yes">✓ Je savais</button>
+      </div>
+      <button class="quit" id="q-quit">Arrêter la séance</button>
+    </div>
+
+    <div id="q-done" hidden>
+      <div class="panel" style="text-align:center">
+        <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft)">Séance terminée</div>
+        <div class="score" id="q-score"></div>
+        <p class="note" id="q-detail" style="margin-top:0"></p>
+        <div id="q-review" class="review-list" hidden>
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px">À retravailler</div>
+          <ul id="q-review-ul"></ul>
+        </div>
+        <div class="sheet-actions" style="margin-top:18px">
+          <button class="ghost" id="q-home">Accueil</button>
+          <button class="primary" id="q-again">Nouvelle séance</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="s-save">
+    <div class="save-card" id="acct-card">
+      <h3>Compte Google</h3>
+      <p id="acct-desc">Connecte-toi pour synchroniser ton carnet avec Google&nbsp;Drive.</p>
+      <div id="acct-badge"></div>
+      <button id="btn-signin">Se connecter à Google</button>
+      <button class="alt" id="btn-signout" hidden>Se déconnecter</button>
+    </div>
+
+    <div class="save-card" id="sync-card">
+      <h3>Synchronisation Drive</h3>
+      <p id="sync-desc"></p>
+      <div id="sync-badge"></div>
+      <button id="btn-sync">Synchroniser maintenant</button>
+    </div>
+
+    <div class="save-card">
+      <h3>Copie manuelle</h3>
+      <p>Un fichier de secours, indépendant de Drive. Utile avant une grosse modification.</p>
+      <button id="btn-share">Partager la sauvegarde</button>
+      <button class="alt" id="btn-export">Télécharger le fichier .json</button>
+      <button class="alt" id="btn-export-txt">Télécharger une version lisible .txt</button>
+    </div>
+
+    <div class="save-card">
+      <h3>Restaurer depuis un fichier</h3>
+      <p>Choisis un <b>.json</b> exporté précédemment. Aucun doublon ne sera créé, et les statistiques les plus avancées sont conservées.</p>
+      <button id="btn-import">Importer un fichier</button>
+      <input type="file" id="file-input" accept=".json,application/json" hidden>
+    </div>
+
+    <div class="save-card">
+      <h3>État du stockage</h3>
+      <p id="storage-info">Vérification…</p>
+      <button class="alt" id="btn-persist">Demander un stockage permanent</button>
+      <button class="warn" id="btn-reset">Réinitialiser le carnet d'origine</button>
+    </div>
+  </section>
+
+  <button class="fab" id="fab" title="Ajouter un mot">＋</button>
+
+  <div class="sync-chip" id="sync-chip" hidden><span class="dot"></span><span id="sync-chip-txt"></span></div>
+
+  <div class="sync-bar" id="sync-bar" hidden><div class="inner">
+    <span id="sync-text"></span>
+    <button id="sync-go">Sauvegarder</button>
+    <button class="x" id="sync-hide">×</button>
+  </div></div>
+
+  <nav class="bottom"><div class="inner">
+    <button data-nav="home" class="active"><span class="jp">辞書</span><span class="fr">Carnet</span></button>
+    <button data-nav="quiz"><span class="jp">復習</span><span class="fr">Réviser</span></button>
+    <button data-nav="save"><span class="jp">保存</span><span class="fr">Sauvegarde</span></button>
+  </div></nav>
+</div>
+
+<div class="overlay" id="gate" hidden>
+  <div class="sheet gate-sheet">
+    <div class="gate-mark">語</div>
+    <h2>Jisho</h2>
+    <p class="gate-txt" id="gate-txt">Connecte-toi avec Google pour retrouver ton carnet et le synchroniser entre tes appareils.</p>
+    <div class="sheet-actions" style="flex-direction:column">
+      <button class="primary" id="gate-signin">Se connecter à Google</button>
+      <button class="ghost" id="gate-offline" hidden>Continuer hors ligne</button>
+    </div>
+    <p class="gate-note" id="gate-note"></p>
+  </div>
+</div>
+
+<div class="overlay" id="conflict" hidden>
+  <div class="sheet">
+    <h2>Modifications en concurrence</h2>
+    <p class="conflict-intro" id="conflict-intro"></p>
+    <div id="conflict-list"></div>
+    <div class="sheet-actions" style="margin-top:14px">
+      <button class="ghost" id="conflict-all-local">Tout garder d'ici</button>
+      <button class="primary" id="conflict-apply">Valider mes choix</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="modal" hidden>
+  <div class="sheet">
+    <h2 id="m-title">Nouveau mot</h2>
+    <div class="pron" id="pron-box">
+      <div class="head">Prononciation</div>
+      <div class="jp" id="pron-jp"></div>
+      <div class="rows" id="pron-rows"></div>
+    </div>
+    <label class="field">単語 — Mot en japonais
+      <input id="m-word" type="text" placeholder="食べる" autocomplete="off">
+    </label>
+    <label class="field">読み方 — Lecture en kana (sert à calculer la prononciation)
+      <input id="m-reading" type="text" placeholder="たべる" autocomplete="off">
+    </label>
+    <label class="field">Traduction
+      <input id="m-trans" type="text" placeholder="manger" autocomplete="off">
+    </label>
+    <div class="two">
+      <label class="field">Catégorie<select id="m-type"></select></label>
+      <label class="field">Thème<select id="m-theme"></select></label>
+    </div>
+    <label class="field" id="m-newtheme-wrap" hidden>Nom du nouveau thème
+      <input id="m-newtheme" type="text" placeholder="Ex. Cuisine" autocomplete="off">
+    </label>
+    <label class="field">Prononciation personnalisée (facultatif — laisse vide pour le calcul automatique)
+      <input id="m-romaji" type="text" placeholder="ké-do" autocomplete="off">
+    </label>
+    <div class="sheet-actions">
+      <button class="destructive" id="m-delete" hidden>Supprimer</button>
+      <button class="ghost" id="m-cancel">Annuler</button>
+      <button class="primary" id="m-save">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var SEED = [{"id":"s0001","word":"ところ","reading":"tokoro","translation":"endroit, lieu, coin","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000001,"romaji":""},{"id":"s0002","word":"ひろば","reading":"","translation":"place (esplanade) / square / Open Space","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000002,"romaji":""},{"id":"s0003","word":"まち","reading":"","translation":"ville, quartier","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000003,"romaji":""},{"id":"s0004","word":"とし","reading":"","translation":"grande ville","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000004,"romaji":""},{"id":"s0005","word":"じんじゃ","reading":"jinja","translation":"sanctuaire shinto","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000005,"romaji":""},{"id":"s0006","word":"おてら","reading":"","translation":"temple","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000006,"romaji":""},{"id":"s0007","word":"たてもの","reading":"","translation":"bâtiment","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000007,"romaji":""},{"id":"s0008","word":"がっこう","reading":"","translation":"école","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000008,"romaji":""},{"id":"s0009","word":"こうえん","reading":"","translation":"parc","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000009,"romaji":""},{"id":"s0010","word":"びじゅつかん","reading":"","translation":"musée d'art","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000010,"romaji":""},{"id":"s0011","word":"はくぶつかん","reading":"","translation":"musée","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000011,"romaji":""},{"id":"s0012","word":"どうぶつえん","reading":"","translation":"zoo","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000012,"romaji":""},{"id":"s0013","word":"しろ","reading":"","translation":"château","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000013,"romaji":""},{"id":"s0014","word":"にわ","reading":"","translation":"jardin","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000014,"romaji":""},{"id":"s0015","word":"スーパー","reading":"","translation":"supermarché","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000015,"romaji":""},{"id":"s0016","word":"としょかん","reading":"","translation":"bibliothèque","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000016,"romaji":""},{"id":"s0017","word":"かいじょう","reading":"","translation":"salle, lieu d'événement, stade","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000017,"romaji":""},{"id":"s0018","word":"ゆうえんち","reading":"","translation":"parc d'attractions","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000018,"romaji":""},{"id":"s0019","word":"入口","reading":"いりぐち","translation":"entrée","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000019,"romaji":""},{"id":"s0020","word":"でぐち","reading":"","translation":"sortie","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000020,"romaji":""},{"id":"s0021","word":"きたぐち","reading":"","translation":"sortie nord","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000021,"romaji":""},{"id":"s0022","word":"北","reading":"きた","translation":"nord","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000022,"romaji":""},{"id":"s0023","word":"みなみぐち","reading":"","translation":"sortie sud","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000023,"romaji":""},{"id":"s0024","word":"みなみ","reading":"","translation":"sud","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000024,"romaji":""},{"id":"s0025","word":"ひがしぐち","reading":"","translation":"sortie est","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000025,"romaji":""},{"id":"s0026","word":"ひがし","reading":"","translation":"est","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000026,"romaji":""},{"id":"s0027","word":"にしぐち","reading":"","translation":"sortie ouest","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000027,"romaji":""},{"id":"s0028","word":"西","reading":"にし","translation":"ouest","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000028,"romaji":""},{"id":"s0029","word":"びょういん","reading":"","translation":"hôpital","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000029,"romaji":""},{"id":"s0030","word":"けいさつ","reading":"","translation":"la police","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000030,"romaji":""},{"id":"s0031","word":"きゅうきゅうしゃ","reading":"","translation":"ambulance","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000031,"romaji":""},{"id":"s0032","word":"しゅうてん","reading":"","translation":"terminus","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000032,"romaji":""},{"id":"s0033","word":"コーナー","reading":"","translation":"rayon, section","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000033,"romaji":""},{"id":"s0034","word":"しょくどう","reading":"","translation":"cantine, réfectoire","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000034,"romaji":""},{"id":"s0035","word":"へや","reading":"","translation":"pièce, chambre","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000035,"romaji":""},{"id":"s0036","word":"すみ","reading":"","translation":"coin, recoin","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000036,"romaji":""},{"id":"s0037","word":"みち","reading":"","translation":"rue, route, chemin","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000037,"romaji":""},{"id":"s0038","word":"ぎんこう","reading":"","translation":"banque","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000038,"romaji":""},{"id":"s0039","word":"ゆうびんきょく","reading":"","translation":"bureau de poste","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000039,"romaji":""},{"id":"s0040","word":"すいぞくかん","reading":"","translation":"aquarium","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000040,"romaji":""},{"id":"s0041","word":"でんきや","reading":"","translation":"magasin d'électronique","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000041,"romaji":""},{"id":"s0042","word":"いなか","reading":"","translation":"campagne","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000042,"romaji":""},{"id":"s0043","word":"レジ","reading":"","translation":"caisse","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000043,"romaji":""},{"id":"s0044","word":"みなと","reading":"","translation":"port","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000044,"romaji":""},{"id":"s0045","word":"いけ","reading":"","translation":"étang","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000045,"romaji":""},{"id":"s0046","word":"はし","reading":"","translation":"pont","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000046,"romaji":""},{"id":"s0047","word":"やたい","reading":"","translation":"stand de nourriture","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000047,"romaji":""},{"id":"s0048","word":"みずうみ","reading":"","translation":"lac","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000048,"romaji":""},{"id":"s0049","word":"りょかん","reading":"","translation":"auberge traditionnelle","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000049,"romaji":""},{"id":"s0050","word":"むら","reading":"","translation":"village","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000050,"romaji":""},{"id":"s0051","word":"まわり","reading":"","translation":"les alentours","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000051,"romaji":""},{"id":"s0052","word":"やっきょく","reading":"","translation":"pharmacie","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000052,"romaji":""},{"id":"s0053","word":"こうがい","reading":"","translation":"banlieue","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000053,"romaji":""},{"id":"s0054","word":"ばしょ","reading":"","translation":"lieu, emplacement","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000054,"romaji":""},{"id":"s0055","word":"おてあらい","reading":"","translation":"toilettes (public)","type":"nom","theme":"Lieux","correct":0,"wrong":0,"createdAt":1700000000055,"romaji":""},{"id":"s0056","word":"だんぼう","reading":"","translation":"chauffage","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000056,"romaji":""},{"id":"s0057","word":"まど","reading":"","translation":"fenêtre","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000057,"romaji":""},{"id":"s0058","word":"もん","reading":"","translation":"portail","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000058,"romaji":""},{"id":"s0059","word":"げんかん","reading":"","translation":"entrée (vestibule)","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000059,"romaji":""},{"id":"s0060","word":"ドア","reading":"","translation":"porte","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000060,"romaji":""},{"id":"s0061","word":"かべ","reading":"","translation":"mur","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000061,"romaji":""},{"id":"s0062","word":"ゆか","reading":"","translation":"sol, plancher","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000062,"romaji":""},{"id":"s0063","word":"たな","reading":"","translation":"étagère","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000063,"romaji":""},{"id":"s0064","word":"かぐ","reading":"","translation":"meubles","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000064,"romaji":""},{"id":"s0065","word":"かびん","reading":"","translation":"vase","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000065,"romaji":""},{"id":"s0066","word":"トイレ","reading":"","translation":"toilettes","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000066,"romaji":""},{"id":"s0067","word":"ひきだし","reading":"","translation":"tiroir","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000067,"romaji":""},{"id":"s0068","word":"でんわ","reading":"","translation":"téléphone (fixe)","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000068,"romaji":""},{"id":"s0069","word":"でんわばんごう","reading":"","translation":"numéro de téléphone","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000069,"romaji":""},{"id":"s0070","word":"ゴミ","reading":"","translation":"déchets, ordures","type":"nom","theme":"Maison","correct":0,"wrong":0,"createdAt":1700000000070,"romaji":""},{"id":"s0071","word":"ご飯","reading":"ごはん","translation":"riz, repas","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000071,"romaji":""},{"id":"s0072","word":"食べ物","reading":"たべもの","translation":"nourriture","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000072,"romaji":""},{"id":"s0073","word":"おかし","reading":"","translation":"friandise, en-cas","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000073,"romaji":""},{"id":"s0074","word":"おかしや","reading":"","translation":"pâtisserie","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000074,"romaji":""},{"id":"s0075","word":"いちご","reading":"","translation":"fraise","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000075,"romaji":""},{"id":"s0076","word":"やさい","reading":"","translation":"légumes","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000076,"romaji":""},{"id":"s0077","word":"くだもの","reading":"","translation":"fruit","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000077,"romaji":""},{"id":"s0078","word":"しょうゆ","reading":"","translation":"sauce soja","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000078,"romaji":""},{"id":"s0079","word":"卵","reading":"たまご","translation":"œuf","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000079,"romaji":""},{"id":"s0080","word":"魚","reading":"さかな","translation":"poisson","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000080,"romaji":""},{"id":"s0081","word":"ぎゅうどん","reading":"","translation":"bol de bœuf","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000081,"romaji":""},{"id":"s0082","word":"さとう","reading":"","translation":"sucre","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000082,"romaji":""},{"id":"s0083","word":"しお","reading":"","translation":"sel","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000083,"romaji":""},{"id":"s0084","word":"こしょう","reading":"","translation":"poivre","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000084,"romaji":""},{"id":"s0085","word":"ソース","reading":"","translation":"sauce","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000085,"romaji":""},{"id":"s0086","word":"肉","reading":"にく","translation":"viande","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000086,"romaji":""},{"id":"s0087","word":"ぶたにく","reading":"","translation":"porc","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000087,"romaji":""},{"id":"s0088","word":"あじ","reading":"","translation":"goût, saveur","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000088,"romaji":""},{"id":"s0089","word":"はし","reading":"","translation":"baguettes","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000089,"romaji":""},{"id":"s0090","word":"チャーハン","reading":"","translation":"riz sauté","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000090,"romaji":""},{"id":"s0091","word":"えび","reading":"","translation":"crevette","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000091,"romaji":""},{"id":"s0092","word":"こおり","reading":"","translation":"glace (glaçon)","type":"nom","theme":"Nourriture","correct":0,"wrong":1,"createdAt":1700000000092,"romaji":""},{"id":"s0093","word":"ぎゅうにゅう","reading":"","translation":"lait","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000093,"romaji":""},{"id":"s0094","word":"おさら","reading":"","translation":"assiette","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000094,"romaji":""},{"id":"s0095","word":"すいか","reading":"","translation":"pastèque","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000095,"romaji":""},{"id":"s0096","word":"じゃがいも","reading":"","translation":"pomme de terre","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000096,"romaji":""},{"id":"s0097","word":"さつまいも","reading":"","translation":"patate douce","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000097,"romaji":""},{"id":"s0098","word":"たまねぎ","reading":"","translation":"oignon","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000098,"romaji":""},{"id":"s0099","word":"なべ","reading":"","translation":"fondue japonaise, marmite","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000099,"romaji":""},{"id":"s0100","word":"みかん","reading":"","translation":"mandarine","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000100,"romaji":""},{"id":"s0101","word":"ロブスター","reading":"","translation":"homard","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000101,"romaji":""},{"id":"s0102","word":"わたあめ","reading":"","translation":"barbe à papa","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000102,"romaji":""},{"id":"s0103","word":"おかゆ","reading":"","translation":"soupe de riz","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000103,"romaji":""},{"id":"s0104","word":"きのこ","reading":"","translation":"champignon","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000104,"romaji":""},{"id":"s0105","word":"こむぎこ","reading":"","translation":"farine","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000105,"romaji":""},{"id":"s0106","word":"あめ","reading":"","translation":"bonbon","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000106,"romaji":""},{"id":"s0107","word":"あげもの","reading":"","translation":"friture","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000107,"romaji":""},{"id":"s0108","word":"ようしょく","reading":"","translation":"cuisine occidentale","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000108,"romaji":""},{"id":"s0109","word":"ファミレス","reading":"","translation":"restaurant familial","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000109,"romaji":""},{"id":"s0110","word":"おさけ","reading":"","translation":"alcool, saké","type":"nom","theme":"Nourriture","correct":0,"wrong":0,"createdAt":1700000000110,"romaji":""},{"id":"s0111","word":"あね","reading":"","translation":"ma sœur aînée","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000111,"romaji":""},{"id":"s0112","word":"あに","reading":"","translation":"mon frère aîné","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000112,"romaji":""},{"id":"s0113","word":"おねえさん","reading":"","translation":"sœur aînée (de qqn d'autre)","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000113,"romaji":""},{"id":"s0114","word":"おとうと","reading":"","translation":"frère cadet","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000114,"romaji":""},{"id":"s0115","word":"いもうと","reading":"","translation":"sœur cadette","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000115,"romaji":""},{"id":"s0116","word":"りょうしん","reading":"","translation":"parents (ご + りょうしん pour ceux d'autrui)","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000116,"romaji":""},{"id":"s0117","word":"こども","reading":"","translation":"enfant, enfants","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000117,"romaji":""},{"id":"s0118","word":"おこさん","reading":"","translation":"enfant (de qqn d'autre)","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000118,"romaji":""},{"id":"s0119","word":"いとこ","reading":"","translation":"cousin, cousine","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000119,"romaji":""},{"id":"s0120","word":"かれし","reading":"","translation":"petit ami","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000120,"romaji":""},{"id":"s0121","word":"かのじょ","reading":"","translation":"petite amie","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000121,"romaji":""},{"id":"s0122","word":"そふぼ","reading":"","translation":"grands-parents","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000122,"romaji":""},{"id":"s0123","word":"そぼ","reading":"","translation":"ma grand-mère","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000123,"romaji":""},{"id":"s0124","word":"そふ","reading":"","translation":"mon grand-père","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000124,"romaji":""},{"id":"s0125","word":"あかちゃん","reading":"","translation":"bébé","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000125,"romaji":""},{"id":"s0126","word":"めい","reading":"","translation":"nièce","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000126,"romaji":""},{"id":"s0127","word":"おい","reading":"","translation":"neveu","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000127,"romaji":""},{"id":"s0128","word":"おきゃくさん","reading":"","translation":"invité, client","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000128,"romaji":""},{"id":"s0129","word":"おくさん","reading":"","translation":"épouse (de qqn d'autre)","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000129,"romaji":""},{"id":"s0130","word":"だんなさん","reading":"","translation":"mari (de qqn d'autre)","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000130,"romaji":""},{"id":"s0131","word":"ほかの人","reading":"ほかのひと","translation":"les autres gens","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000131,"romaji":""},{"id":"s0132","word":"けっこんしき","reading":"","translation":"mariage (cérémonie)","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000132,"romaji":""},{"id":"s0133","word":"しんろう","reading":"","translation":"le marié","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000133,"romaji":""},{"id":"s0134","word":"しんぷ","reading":"","translation":"la mariée","type":"nom","theme":"Famille","correct":0,"wrong":0,"createdAt":1700000000134,"romaji":""},{"id":"s0135","word":"あたま","reading":"","translation":"tête","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000135,"romaji":""},{"id":"s0136","word":"かお","reading":"","translation":"visage","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000136,"romaji":""},{"id":"s0137","word":"目","reading":"め","translation":"œil","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000137,"romaji":""},{"id":"s0138","word":"みみ","reading":"","translation":"oreille","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000138,"romaji":""},{"id":"s0139","word":"口","reading":"くち","translation":"bouche","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000139,"romaji":""},{"id":"s0140","word":"はな","reading":"","translation":"nez","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000140,"romaji":""},{"id":"s0141","word":"のど","reading":"","translation":"gorge","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000141,"romaji":""},{"id":"s0142","word":"くび","reading":"","translation":"cou","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000142,"romaji":""},{"id":"s0143","word":"うで","reading":"","translation":"bras","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000143,"romaji":""},{"id":"s0144","word":"あし","reading":"","translation":"jambe, pied","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000144,"romaji":""},{"id":"s0145","word":"おなか","reading":"","translation":"ventre, estomac","type":"nom","theme":"Corps","correct":0,"wrong":0,"createdAt":1700000000145,"romaji":""},{"id":"s0146","word":"ねつ","reading":"","translation":"fièvre","type":"nom","theme":"Santé","correct":0,"wrong":0,"createdAt":1700000000146,"romaji":""},{"id":"s0147","word":"かぜ","reading":"","translation":"rhume","type":"nom","theme":"Santé","correct":0,"wrong":0,"createdAt":1700000000147,"romaji":""},{"id":"s0148","word":"くすり","reading":"","translation":"médicament","type":"nom","theme":"Santé","correct":0,"wrong":0,"createdAt":1700000000148,"romaji":""},{"id":"s0149","word":"ひやけどめ","reading":"","translation":"crème solaire","type":"nom","theme":"Santé","correct":0,"wrong":0,"createdAt":1700000000149,"romaji":""},{"id":"s0150","word":"ふく","reading":"","translation":"vêtements","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000150,"romaji":""},{"id":"s0151","word":"くつ","reading":"","translation":"chaussures","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000151,"romaji":""},{"id":"s0152","word":"くつした","reading":"","translation":"chaussettes","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000152,"romaji":""},{"id":"s0153","word":"ジーンズ","reading":"","translation":"jean","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000153,"romaji":""},{"id":"s0154","word":"ブラウス","reading":"","translation":"chemisier","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000154,"romaji":""},{"id":"s0155","word":"ボロボロ","reading":"","translation":"usé, en lambeaux","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000155,"romaji":""},{"id":"s0156","word":"セーター","reading":"","translation":"pull","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000156,"romaji":""},{"id":"s0157","word":"パーカー","reading":"","translation":"sweat à capuche","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000157,"romaji":""},{"id":"s0158","word":"レディース","reading":"","translation":"pour femmes","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000158,"romaji":""},{"id":"s0159","word":"マフラー","reading":"","translation":"écharpe","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000159,"romaji":""},{"id":"s0160","word":"みずぎ","reading":"","translation":"maillot de bain","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000160,"romaji":""},{"id":"s0161","word":"めがね","reading":"","translation":"lunettes","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000161,"romaji":""},{"id":"s0162","word":"ゆびわ","reading":"","translation":"bague","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000162,"romaji":""},{"id":"s0163","word":"スニーカー","reading":"","translation":"baskets","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000163,"romaji":""},{"id":"s0164","word":"ブーツ","reading":"","translation":"bottes","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000164,"romaji":""},{"id":"s0165","word":"サンダル","reading":"","translation":"sandales","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000165,"romaji":""},{"id":"s0166","word":"スリッパ","reading":"","translation":"chaussons","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1700000000166,"romaji":""},{"id":"s0167","word":"月曜日","reading":"げつようび","translation":"lundi","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000167,"romaji":""},{"id":"s0168","word":"火曜日","reading":"かようび","translation":"mardi","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000168,"romaji":""},{"id":"s0169","word":"水曜日","reading":"すいようび","translation":"mercredi","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000169,"romaji":""},{"id":"s0170","word":"木曜日","reading":"もくようび","translation":"jeudi","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000170,"romaji":""},{"id":"s0171","word":"金曜日","reading":"きんようび","translation":"vendredi","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000171,"romaji":""},{"id":"s0172","word":"土曜日","reading":"どようび","translation":"samedi","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000172,"romaji":""},{"id":"s0173","word":"日曜日","reading":"にちようび","translation":"dimanche","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000173,"romaji":""},{"id":"s0174","word":"何曜日","reading":"なんようび","translation":"quel jour ?","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000174,"romaji":""},{"id":"s0175","word":"一月","reading":"いちがつ","translation":"janvier","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000175,"romaji":""},{"id":"s0176","word":"二月","reading":"にがつ","translation":"février","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000176,"romaji":""},{"id":"s0177","word":"三月","reading":"さんがつ","translation":"mars","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000177,"romaji":""},{"id":"s0178","word":"四月","reading":"しがつ","translation":"avril","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000178,"romaji":""},{"id":"s0179","word":"五月","reading":"ごがつ","translation":"mai","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000179,"romaji":""},{"id":"s0180","word":"八月","reading":"はちがつ","translation":"août","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000180,"romaji":""},{"id":"s0181","word":"九月","reading":"くがつ","translation":"septembre","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000181,"romaji":""},{"id":"s0182","word":"十月","reading":"じゅうがつ","translation":"octobre","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000182,"romaji":""},{"id":"s0183","word":"十二月","reading":"じゅうにがつ","translation":"décembre","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000183,"romaji":""},{"id":"s0184","word":"時間","reading":"じかん","translation":"heure, temps","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000184,"romaji":""},{"id":"s0185","word":"おおみそか","reading":"","translation":"réveillon du Nouvel An","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000185,"romaji":""},{"id":"s0186","word":"クリスマス","reading":"","translation":"Noël","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000186,"romaji":""},{"id":"s0187","word":"たんじょうび","reading":"","translation":"anniversaire","type":"nom","theme":"Temps & Calendrier","correct":0,"wrong":0,"createdAt":1700000000187,"romaji":""},{"id":"s0188","word":"はる","reading":"","translation":"printemps","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000188,"romaji":""},{"id":"s0189","word":"なつ","reading":"","translation":"été","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000189,"romaji":""},{"id":"s0190","word":"あき","reading":"","translation":"automne","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000190,"romaji":""},{"id":"s0191","word":"ふゆ","reading":"","translation":"hiver","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000191,"romaji":""},{"id":"s0192","word":"夜","reading":"よる","translation":"nuit, soir","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000192,"romaji":""},{"id":"s0193","word":"ゆうがた","reading":"","translation":"fin d'après-midi, soirée","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000193,"romaji":""},{"id":"s0194","word":"千","reading":"せん","translation":"mille","type":"nom","theme":"Nombres","correct":0,"wrong":0,"createdAt":1700000000194,"romaji":""},{"id":"s0195","word":"ぜんぶで","reading":"","translation":"en tout, au total","type":"nom","theme":"Nombres","correct":0,"wrong":0,"createdAt":1700000000195,"romaji":""},{"id":"s0196","word":"おつり","reading":"","translation":"monnaie (rendue)","type":"nom","theme":"Nombres","correct":0,"wrong":0,"createdAt":1700000000196,"romaji":""},{"id":"s0197","word":"ねだん","reading":"","translation":"prix","type":"nom","theme":"Nombres","correct":0,"wrong":0,"createdAt":1700000000197,"romaji":""},{"id":"s0198","word":"一階","reading":"いっかい","translation":"rez-de-chaussée","type":"nom","theme":"Nombres","correct":0,"wrong":0,"createdAt":1700000000198,"romaji":""},{"id":"s0199","word":"何階","reading":"なんかい","translation":"quel étage ?","type":"nom","theme":"Nombres","correct":0,"wrong":0,"createdAt":1700000000199,"romaji":""},{"id":"s0200","word":"どうが","reading":"","translation":"vidéo","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000200,"romaji":""},{"id":"s0201","word":"しゃしん","reading":"","translation":"photo","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000201,"romaji":""},{"id":"s0202","word":"本","reading":"ほん","translation":"livre","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000202,"romaji":""},{"id":"s0203","word":"えほん","reading":"","translation":"livre illustré","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000203,"romaji":""},{"id":"s0204","word":"たのしい","reading":"","translation":"amusant","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000204,"romaji":""},{"id":"s0205","word":"りょこう","reading":"","translation":"voyage","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000205,"romaji":""},{"id":"s0206","word":"かんこう","reading":"","translation":"tourisme, visite","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000206,"romaji":""},{"id":"s0207","word":"にゅうじょうりょう","reading":"","translation":"droit d'entrée","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000207,"romaji":""},{"id":"s0208","word":"話","reading":"はなし","translation":"histoire, récit","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000208,"romaji":""},{"id":"s0209","word":"しょうせつ","reading":"","translation":"roman","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000209,"romaji":""},{"id":"s0210","word":"れんしゅう","reading":"","translation":"entraînement, pratique","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000210,"romaji":""},{"id":"s0211","word":"がっき","reading":"","translation":"instrument de musique","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000211,"romaji":""},{"id":"s0212","word":"おまつり","reading":"","translation":"fête, festival","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000212,"romaji":""},{"id":"s0213","word":"うた","reading":"","translation":"chanson","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000213,"romaji":""},{"id":"s0214","word":"けしき","reading":"","translation":"paysage, vue","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000214,"romaji":""},{"id":"s0215","word":"外","reading":"そと","translation":"dehors, extérieur","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000215,"romaji":""},{"id":"s0216","word":"ネット","reading":"","translation":"internet","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000216,"romaji":""},{"id":"s0217","word":"ぶんか","reading":"","translation":"culture","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000217,"romaji":""},{"id":"s0218","word":"おもちゃ","reading":"","translation":"jouet","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000218,"romaji":""},{"id":"s0219","word":"ぬいぐるみ","reading":"","translation":"peluche","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000219,"romaji":""},{"id":"s0220","word":"ヘッドホン","reading":"","translation":"casque audio","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000220,"romaji":""},{"id":"s0221","word":"グッズ","reading":"","translation":"goodies, produits dérivés","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000221,"romaji":""},{"id":"s0222","word":"よてい","reading":"","translation":"projet, plan","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000222,"romaji":""},{"id":"s0223","word":"にんぎょう","reading":"","translation":"poupée","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000223,"romaji":""},{"id":"s0224","word":"SNS","reading":"","translation":"réseaux sociaux","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000224,"romaji":""},{"id":"s0225","word":"えんぎ","reading":"","translation":"jeu d'acteur, performance","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000225,"romaji":""},{"id":"s0226","word":"アプリ","reading":"","translation":"application","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000226,"romaji":""},{"id":"s0227","word":"かしゅ","reading":"","translation":"chanteur, chanteuse","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000227,"romaji":""},{"id":"s0228","word":"ふんいき","reading":"","translation":"ambiance, atmosphère","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000228,"romaji":""},{"id":"s0229","word":"ようじ","reading":"","translation":"chose à faire, occupation","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000229,"romaji":""},{"id":"s0230","word":"せいかつ","reading":"","translation":"vie quotidienne","type":"nom","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000230,"romaji":""},{"id":"s0231","word":"かいしゃいん","reading":"","translation":"employé de bureau","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000231,"romaji":""},{"id":"s0232","word":"かいしゃ","reading":"","translation":"entreprise","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000232,"romaji":""},{"id":"s0233","word":"しごと","reading":"","translation":"travail, métier","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000233,"romaji":""},{"id":"s0234","word":"バイト","reading":"","translation":"petit boulot","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000234,"romaji":""},{"id":"s0235","word":"かじ","reading":"","translation":"tâches ménagères","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000235,"romaji":""},{"id":"s0236","word":"そうじ","reading":"","translation":"ménage, nettoyage","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000236,"romaji":""},{"id":"s0237","word":"せんたく","reading":"","translation":"lessive","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000237,"romaji":""},{"id":"s0238","word":"りょうり","reading":"","translation":"cuisine, plat","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000238,"romaji":""},{"id":"s0239","word":"はいゆう","reading":"","translation":"acteur","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000239,"romaji":""},{"id":"s0240","word":"てんいん","reading":"","translation":"vendeur, serveur","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000240,"romaji":""},{"id":"s0241","word":"かいけい","reading":"","translation":"caisse, addition","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000241,"romaji":""},{"id":"s0242","word":"レジぶくろ","reading":"","translation":"sac de courses","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000242,"romaji":""},{"id":"s0243","word":"こうこく","reading":"","translation":"publicité","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000243,"romaji":""},{"id":"s0244","word":"うんてんしゅ","reading":"","translation":"chauffeur","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000244,"romaji":""},{"id":"s0245","word":"うけつけ","reading":"","translation":"accueil, réception","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1700000000245,"romaji":""},{"id":"s0246","word":"すうがく","reading":"","translation":"mathématiques","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000246,"romaji":""},{"id":"s0247","word":"たいいく","reading":"","translation":"sport (EPS)","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000247,"romaji":""},{"id":"s0248","word":"げんご","reading":"","translation":"langue, langage","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000248,"romaji":""},{"id":"s0249","word":"がいこくご","reading":"","translation":"langue étrangère","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000249,"romaji":""},{"id":"s0250","word":"れきし","reading":"","translation":"histoire","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000250,"romaji":""},{"id":"s0251","word":"ぶんがく","reading":"","translation":"littérature","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000251,"romaji":""},{"id":"s0252","word":"びじゅつ","reading":"","translation":"arts plastiques","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000252,"romaji":""},{"id":"s0253","word":"こうこう","reading":"","translation":"lycée","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000253,"romaji":""},{"id":"s0254","word":"高校生","reading":"こうこうせい","translation":"lycéen","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000254,"romaji":""},{"id":"s0255","word":"大学","reading":"だいがく","translation":"université","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000255,"romaji":""},{"id":"s0256","word":"きょうしつ","reading":"","translation":"salle de classe","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000256,"romaji":""},{"id":"s0257","word":"じゅぎょう","reading":"","translation":"cours, leçon","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000257,"romaji":""},{"id":"s0258","word":"せいふく","reading":"","translation":"uniforme","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000258,"romaji":""},{"id":"s0259","word":"しつもん","reading":"","translation":"question","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000259,"romaji":""},{"id":"s0260","word":"かだい","reading":"","translation":"devoir, exercice","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000260,"romaji":""},{"id":"s0261","word":"せいせき","reading":"","translation":"notes, résultats","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000261,"romaji":""},{"id":"s0262","word":"せんこう","reading":"","translation":"spécialité, filière","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000262,"romaji":""},{"id":"s0263","word":"りょう","reading":"","translation":"résidence universitaire","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000263,"romaji":""},{"id":"s0264","word":"サークル","reading":"","translation":"club (étudiant)","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000264,"romaji":""},{"id":"s0265","word":"先生","reading":"せんせい","translation":"professeur","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000265,"romaji":""},{"id":"s0266","word":"えんぴつ","reading":"","translation":"crayon","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000266,"romaji":""},{"id":"s0267","word":"ペン","reading":"","translation":"stylo","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000267,"romaji":""},{"id":"s0268","word":"ノート","reading":"","translation":"cahier, notes","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000268,"romaji":""},{"id":"s0269","word":"ようちえん","reading":"","translation":"école maternelle","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000269,"romaji":""},{"id":"s0270","word":"しゅくだい","reading":"","translation":"devoirs (maison)","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1700000000270,"romaji":""},{"id":"s0271","word":"アメフト","reading":"","translation":"football américain","type":"nom","theme":"Sports","correct":0,"wrong":0,"createdAt":1700000000271,"romaji":""},{"id":"s0272","word":"しあい","reading":"","translation":"match","type":"nom","theme":"Sports","correct":0,"wrong":0,"createdAt":1700000000272,"romaji":""},{"id":"s0273","word":"スタジアム","reading":"","translation":"stade","type":"nom","theme":"Sports","correct":0,"wrong":0,"createdAt":1700000000273,"romaji":""},{"id":"s0274","word":"コート","reading":"","translation":"court, terrain","type":"nom","theme":"Sports","correct":0,"wrong":0,"createdAt":1700000000274,"romaji":""},{"id":"s0275","word":"スノボ","reading":"","translation":"snowboard","type":"nom","theme":"Sports","correct":0,"wrong":0,"createdAt":1700000000275,"romaji":""},{"id":"s0276","word":"すいえい","reading":"","translation":"natation","type":"nom","theme":"Sports","correct":0,"wrong":0,"createdAt":1700000000276,"romaji":""},{"id":"s0277","word":"大会","reading":"たいかい","translation":"compétition, tournoi","type":"nom","theme":"Sports","correct":0,"wrong":0,"createdAt":1700000000277,"romaji":""},{"id":"s0278","word":"じてんしゃ","reading":"","translation":"vélo","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000278,"romaji":""},{"id":"s0279","word":"車","reading":"くるま","translation":"voiture","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000279,"romaji":""},{"id":"s0280","word":"ひこうき","reading":"","translation":"avion","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000280,"romaji":""},{"id":"s0281","word":"電車","reading":"でんしゃ","translation":"train","type":"nom","theme":"Voyage","correct":1,"wrong":0,"createdAt":1700000000281,"romaji":""},{"id":"s0282","word":"駅","reading":"えき","translation":"gare","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000282,"romaji":""},{"id":"s0283","word":"しんかんせん","reading":"","translation":"train à grande vitesse","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000283,"romaji":""},{"id":"s0284","word":"せき","reading":"","translation":"siège, place","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000284,"romaji":""},{"id":"s0285","word":"バス","reading":"","translation":"bus","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000285,"romaji":""},{"id":"s0286","word":"ナビ","reading":"","translation":"GPS","type":"nom","theme":"Voyage","correct":1,"wrong":0,"createdAt":1700000000286,"romaji":""},{"id":"s0287","word":"ふね","reading":"","translation":"bateau","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000287,"romaji":""},{"id":"s0288","word":"かいがい","reading":"","translation":"étranger, outre-mer","type":"nom","theme":"Voyage","correct":0,"wrong":0,"createdAt":1700000000288,"romaji":""},{"id":"s0289","word":"ライオン","reading":"","translation":"lion","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000289,"romaji":""},{"id":"s0290","word":"ぞう","reading":"","translation":"éléphant","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000290,"romaji":""},{"id":"s0291","word":"カモ","reading":"","translation":"canard","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000291,"romaji":""},{"id":"s0292","word":"パンダ","reading":"","translation":"panda","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000292,"romaji":""},{"id":"s0293","word":"とり","reading":"","translation":"oiseau","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000293,"romaji":""},{"id":"s0294","word":"きりん","reading":"","translation":"girafe","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000294,"romaji":""},{"id":"s0295","word":"さる","reading":"","translation":"singe","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000295,"romaji":""},{"id":"s0296","word":"うさぎ","reading":"","translation":"lapin","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000296,"romaji":""},{"id":"s0297","word":"やぎ","reading":"","translation":"chèvre","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000297,"romaji":""},{"id":"s0298","word":"ゴキブリ","reading":"","translation":"cafard","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1700000000298,"romaji":""},{"id":"s0299","word":"木","reading":"き","translation":"arbre","type":"nom","theme":"Nature","correct":0,"wrong":0,"createdAt":1700000000299,"romaji":""},{"id":"s0300","word":"くうき","reading":"","translation":"air","type":"nom","theme":"Nature","correct":0,"wrong":0,"createdAt":1700000000300,"romaji":""},{"id":"s0301","word":"もり","reading":"","translation":"forêt","type":"nom","theme":"Nature","correct":0,"wrong":0,"createdAt":1700000000301,"romaji":""},{"id":"s0302","word":"花","reading":"はな","translation":"fleur","type":"nom","theme":"Nature","correct":0,"wrong":0,"createdAt":1700000000302,"romaji":""},{"id":"s0303","word":"ドイツ","reading":"","translation":"Allemagne","type":"nom","theme":"Pays","correct":0,"wrong":0,"createdAt":1700000000303,"romaji":""},{"id":"s0304","word":"フィリピン","reading":"","translation":"Philippines","type":"nom","theme":"Pays","correct":0,"wrong":0,"createdAt":1700000000304,"romaji":""},{"id":"s0305","word":"色","reading":"いろ","translation":"couleur","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000305,"romaji":""},{"id":"s0306","word":"あおい","reading":"","translation":"bleu","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000306,"romaji":""},{"id":"s0307","word":"あかい","reading":"","translation":"rouge","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000307,"romaji":""},{"id":"s0308","word":"きいろい","reading":"","translation":"jaune","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000308,"romaji":""},{"id":"s0309","word":"みどり","reading":"","translation":"vert","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000309,"romaji":""},{"id":"s0310","word":"しろい","reading":"","translation":"blanc","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000310,"romaji":""},{"id":"s0311","word":"くろい","reading":"","translation":"noir","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000311,"romaji":""},{"id":"s0312","word":"ちゃいろ","reading":"","translation":"marron","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000312,"romaji":""},{"id":"s0313","word":"むらさき","reading":"","translation":"violet","type":"nom","theme":"Couleurs","correct":0,"wrong":0,"createdAt":1700000000313,"romaji":""},{"id":"s0314","word":"でんち","reading":"","translation":"pile, batterie","type":"nom","theme":"Électronique","correct":0,"wrong":0,"createdAt":1700000000314,"romaji":""},{"id":"s0315","word":"リモコン","reading":"","translation":"télécommande","type":"nom","theme":"Électronique","correct":0,"wrong":0,"createdAt":1700000000315,"romaji":""},{"id":"s0316","word":"けいたい","reading":"","translation":"téléphone portable","type":"nom","theme":"Électronique","correct":0,"wrong":0,"createdAt":1700000000316,"romaji":""},{"id":"s0317","word":"シルバー","reading":"","translation":"argenté","type":"nom","theme":"Divers","correct":0,"wrong":0,"createdAt":1700000000317,"romaji":""},{"id":"s0318","word":"さいあく","reading":"","translation":"le pire","type":"nom","theme":"Divers","correct":0,"wrong":0,"createdAt":1700000000318,"romaji":""},{"id":"s0319","word":"れつ","reading":"","translation":"file, queue","type":"nom","theme":"Divers","correct":0,"wrong":0,"createdAt":1700000000319,"romaji":""},{"id":"s0320","word":"もんだい","reading":"","translation":"problème, question","type":"nom","theme":"Divers","correct":0,"wrong":0,"createdAt":1700000000320,"romaji":""},{"id":"s0321","word":"左","reading":"ひだり","translation":"gauche","type":"nom","theme":"Divers","correct":0,"wrong":0,"createdAt":1700000000321,"romaji":""},{"id":"s0322","word":"右","reading":"みぎ","translation":"droite","type":"nom","theme":"Divers","correct":0,"wrong":0,"createdAt":1700000000322,"romaji":""},{"id":"s0323","word":"はれ","reading":"","translation":"temps ensoleillé","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000323,"romaji":""},{"id":"s0324","word":"あめ","reading":"","translation":"pluie","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000324,"romaji":""},{"id":"s0325","word":"くもり","reading":"","translation":"temps nuageux","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000325,"romaji":""},{"id":"s0326","word":"あらし","reading":"","translation":"tempête, orage","type":"nom","theme":"Météo & Saisons","correct":0,"wrong":0,"createdAt":1700000000326,"romaji":""},{"id":"s0327","word":"します","reading":"","translation":"faire","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000327,"romaji":""},{"id":"s0328","word":"食べます","reading":"たべます","translation":"manger","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000328,"romaji":""},{"id":"s0329","word":"飲みます","reading":"のみます","translation":"boire, prendre (un médicament)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000329,"romaji":""},{"id":"s0330","word":"ねます","reading":"","translation":"dormir","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000330,"romaji":""},{"id":"s0331","word":"おきます","reading":"","translation":"se lever, se réveiller","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000331,"romaji":""},{"id":"s0332","word":"すわります","reading":"","translation":"s'asseoir","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000332,"romaji":""},{"id":"s0333","word":"あびます","reading":"","translation":"prendre (une douche)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000333,"romaji":""},{"id":"s0334","word":"にはいります","reading":"","translation":"prendre (un bain)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000334,"romaji":""},{"id":"s0335","word":"つくります","reading":"","translation":"faire, préparer","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000335,"romaji":""},{"id":"s0336","word":"作ります","reading":"つくります","translation":"fabriquer, préparer","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000336,"romaji":""},{"id":"s0337","word":"あらいます","reading":"","translation":"laver","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000337,"romaji":""},{"id":"s0338","word":"かたづけます","reading":"","translation":"ranger","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000338,"romaji":""},{"id":"s0339","word":"きます","reading":"","translation":"porter (un vêtement)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000339,"romaji":""},{"id":"s0340","word":"ぬぎます","reading":"","translation":"enlever (un vêtement)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000340,"romaji":""},{"id":"s0341","word":"きがえます","reading":"","translation":"se changer","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000341,"romaji":""},{"id":"s0342","word":"つかいます","reading":"","translation":"utiliser","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000342,"romaji":""},{"id":"s0343","word":"かいます","reading":"買います","translation":"acheter","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000343,"romaji":""},{"id":"s0344","word":"はらいます","reading":"","translation":"payer","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000344,"romaji":""},{"id":"s0345","word":"やきます","reading":"","translation":"griller, faire cuire au four","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000345,"romaji":""},{"id":"s0346","word":"きります","reading":"","translation":"couper","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000346,"romaji":""},{"id":"s0347","word":"つけます","reading":"","translation":"allumer, mettre","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000347,"romaji":""},{"id":"s0348","word":"あけます","reading":"","translation":"ouvrir (une fenêtre)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000348,"romaji":""},{"id":"s0349","word":"あきます","reading":"","translation":"s'ouvrir","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000349,"romaji":""},{"id":"s0350","word":"しまります","reading":"","translation":"se fermer","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000350,"romaji":""},{"id":"s0351","word":"休みます","reading":"やすみます","translation":"se reposer, être absent","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000351,"romaji":""},{"id":"s0352","word":"そうじします","reading":"","translation":"faire le ménage","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000352,"romaji":""},{"id":"s0353","word":"すんでいます","reading":"住んでいます","translation":"habiter","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000353,"romaji":""},{"id":"s0354","word":"とまります","reading":"","translation":"loger, séjourner","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000354,"romaji":""},{"id":"s0355","word":"かります","reading":"","translation":"emprunter, louer","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000355,"romaji":""},{"id":"s0356","word":"おとします","reading":"","translation":"faire tomber","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000356,"romaji":""},{"id":"s0357","word":"わすれます","reading":"","translation":"oublier","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000357,"romaji":""},{"id":"s0358","word":"さがします","reading":"","translation":"chercher","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000358,"romaji":""},{"id":"s0359","word":"見つけます","reading":"みつけます","translation":"trouver","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000359,"romaji":""},{"id":"s0360","word":"います","reading":"","translation":"être (êtres vivants)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000360,"romaji":""},{"id":"s0361","word":"があります","reading":"","translation":"avoir, il y a (objets)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000361,"romaji":""},{"id":"s0362","word":"ありません","reading":"","translation":"ne pas avoir","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000362,"romaji":""},{"id":"s0363","word":"がいます","reading":"","translation":"avoir (êtres vivants)","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000363,"romaji":""},{"id":"s0364","word":"います か","reading":"","translation":"est-ce qu'il y a ?","type":"verbe","theme":"Quotidien","correct":0,"wrong":0,"createdAt":1700000000364,"romaji":""},{"id":"s0365","word":"行きます","reading":"いきます","translation":"aller","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000365,"romaji":""},{"id":"s0366","word":"来ます","reading":"きます","translation":"venir","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000366,"romaji":""},{"id":"s0367","word":"帰ります","reading":"かえります","translation":"rentrer à la maison","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000367,"romaji":""},{"id":"s0368","word":"でます","reading":"","translation":"partir, sortir","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000368,"romaji":""},{"id":"s0369","word":"つきます","reading":"","translation":"arriver","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000369,"romaji":""},{"id":"s0370","word":"でかけます","reading":"","translation":"sortir (en ville)","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000370,"romaji":""},{"id":"s0371","word":"乗ります","reading":"のります","translation":"monter (dans un bus, un train)","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000371,"romaji":""},{"id":"s0372","word":"おります","reading":"","translation":"descendre (d'un train)","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000372,"romaji":""},{"id":"s0373","word":"のりかえます","reading":"","translation":"changer de train, faire une correspondance","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000373,"romaji":""},{"id":"s0374","word":"あるきます","reading":"","translation":"marcher","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000374,"romaji":""},{"id":"s0375","word":"はしります","reading":"","translation":"courir","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000375,"romaji":""},{"id":"s0376","word":"まわります","reading":"","translation":"faire le tour","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000376,"romaji":""},{"id":"s0377","word":"もどります","reading":"","translation":"revenir, retourner","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000377,"romaji":""},{"id":"s0378","word":"上がります","reading":"あがります","translation":"monter","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000378,"romaji":""},{"id":"s0379","word":"まがります","reading":"","translation":"tourner","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000379,"romaji":""},{"id":"s0380","word":"ならびます","reading":"","translation":"faire la queue","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000380,"romaji":""},{"id":"s0381","word":"ひっこします","reading":"","translation":"déménager","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000381,"romaji":""},{"id":"s0382","word":"いそぎます","reading":"","translation":"se dépêcher","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000382,"romaji":""},{"id":"s0383","word":"おくれます","reading":"","translation":"être en retard","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000383,"romaji":""},{"id":"s0384","word":"まちます","reading":"","translation":"attendre","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000384,"romaji":""},{"id":"s0385","word":"りゅうがくします","reading":"","translation":"partir étudier à l'étranger","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000385,"romaji":""},{"id":"s0386","word":"ころびます","reading":"","translation":"tomber","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000386,"romaji":""},{"id":"s0387","word":"うんてんします","reading":"","translation":"conduire","type":"verbe","theme":"Déplacement","correct":0,"wrong":0,"createdAt":1700000000387,"romaji":""},{"id":"s0388","word":"話します","reading":"はなします","translation":"parler","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000388,"romaji":""},{"id":"s0389","word":"と言います","reading":"といいます","translation":"s'appeler, dire","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000389,"romaji":""},{"id":"s0390","word":"ききます","reading":"","translation":"écouter","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000390,"romaji":""},{"id":"s0391","word":"よびます","reading":"","translation":"appeler (un taxi)","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000391,"romaji":""},{"id":"s0392","word":"電話します","reading":"でんわします","translation":"téléphoner","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000392,"romaji":""},{"id":"s0393","word":"メールします","reading":"","translation":"envoyer un mail","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000393,"romaji":""},{"id":"s0394","word":"おくります","reading":"","translation":"envoyer (un message)","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000394,"romaji":""},{"id":"s0395","word":"書きます","reading":"かきます","translation":"écrire","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000395,"romaji":""},{"id":"s0396","word":"会います","reading":"あいます","translation":"rencontrer, retrouver","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000396,"romaji":""},{"id":"s0397","word":"けんかします","reading":"","translation":"se disputer","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000397,"romaji":""},{"id":"s0398","word":"わかれます","reading":"","translation":"rompre, se séparer","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1700000000398,"romaji":""},{"id":"s0399","word":"見ます","reading":"みます","translation":"regarder","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000399,"romaji":""},{"id":"s0400","word":"あそびます","reading":"","translation":"s'amuser, sortir avec","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000400,"romaji":""},{"id":"s0401","word":"およぎます","reading":"","translation":"nager","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000401,"romaji":""},{"id":"s0402","word":"うたいます","reading":"","translation":"chanter","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000402,"romaji":""},{"id":"s0403","word":"おどります","reading":"","translation":"danser","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000403,"romaji":""},{"id":"s0404","word":"ひきます","reading":"","translation":"jouer (d'un instrument)","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000404,"romaji":""},{"id":"s0405","word":"とります","reading":"","translation":"prendre (une photo)","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000405,"romaji":""},{"id":"s0406","word":"うんどうします","reading":"","translation":"faire du sport","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000406,"romaji":""},{"id":"s0407","word":"さんぽします","reading":"","translation":"se promener","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000407,"romaji":""},{"id":"s0408","word":"ゆっくりします","reading":"","translation":"se détendre","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000408,"romaji":""},{"id":"s0409","word":"なでます","reading":"","translation":"caresser (un animal)","type":"verbe","theme":"Loisirs","correct":0,"wrong":0,"createdAt":1700000000409,"romaji":""},{"id":"s0410","word":"べんきょうします","reading":"","translation":"étudier","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000410,"romaji":""},{"id":"s0411","word":"ならいます","reading":"","translation":"apprendre","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000411,"romaji":""},{"id":"s0412","word":"そつぎょうします","reading":"","translation":"obtenir son diplôme","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000412,"romaji":""},{"id":"s0413","word":"入ります","reading":"はいります","translation":"entrer, s'inscrire, rejoindre","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000413,"romaji":""},{"id":"s0414","word":"ができます","reading":"","translation":"savoir faire, pouvoir","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000414,"romaji":""},{"id":"s0415","word":"はじまります","reading":"","translation":"commencer","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000415,"romaji":""},{"id":"s0416","word":"おわります","reading":"","translation":"finir, se terminer","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000416,"romaji":""},{"id":"s0417","word":"かかります","reading":"","translation":"prendre (du temps)","type":"verbe","theme":"Études & Travail","correct":0,"wrong":0,"createdAt":1700000000417,"romaji":""},{"id":"s0418","word":"がすきです","reading":"","translation":"aimer","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000418,"romaji":""},{"id":"s0419","word":"すきです","reading":"","translation":"aimer bien","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000419,"romaji":""},{"id":"s0420","word":"がだいすきです","reading":"","translation":"adorer","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000420,"romaji":""},{"id":"s0421","word":"がほしいです","reading":"","translation":"vouloir (un objet)","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000421,"romaji":""},{"id":"s0422","word":"はちょっと","reading":"","translation":"ne pas trop aimer","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000422,"romaji":""},{"id":"s0423","word":"がたのしみです","reading":"","translation":"avoir hâte de","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000423,"romaji":""},{"id":"s0424","word":"よろこびます","reading":"","translation":"se réjouir","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000424,"romaji":""},{"id":"s0425","word":"おこります","reading":"","translation":"se mettre en colère","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000425,"romaji":""},{"id":"s0426","word":"つかれました","reading":"","translation":"être fatigué","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000426,"romaji":""},{"id":"s0427","word":"ひまです","reading":"","translation":"être libre, disponible","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000427,"romaji":""},{"id":"s0428","word":"がいいです","reading":"","translation":"être bien","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000428,"romaji":""},{"id":"s0429","word":"いります","reading":"","translation":"avoir besoin de","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000429,"romaji":""},{"id":"s0430","word":"なおります","reading":"","translation":"guérir, se rétablir","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000430,"romaji":""},{"id":"s0431","word":"痛いです","reading":"いたいです","translation":"avoir mal (partie du corps + が)","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000431,"romaji":""},{"id":"s0432","word":"こんでいます","reading":"","translation":"être bondé","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000432,"romaji":""},{"id":"s0433","word":"こわれます","reading":"","translation":"se casser","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000433,"romaji":""},{"id":"s0434","word":"さきます","reading":"","translation":"fleurir","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000434,"romaji":""},{"id":"s0435","word":"ひかります","reading":"","translation":"briller, s'illuminer","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000435,"romaji":""},{"id":"s0436","word":"になります","reading":"","translation":"devenir, avoir (un âge)","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000436,"romaji":""},{"id":"s0437","word":"もらいます","reading":"","translation":"recevoir de","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000437,"romaji":""},{"id":"s0438","word":"あげます","reading":"","translation":"donner, offrir","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000438,"romaji":""},{"id":"s0439","word":"ぬります","reading":"","translation":"appliquer (une crème)","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000439,"romaji":""},{"id":"s0440","word":"うちます","reading":"","translation":"frapper","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000440,"romaji":""},{"id":"s0441","word":"ひきます","reading":"","translation":"attraper (un rhume), consulter (un dico)","type":"verbe","theme":"États & Sentiments","correct":0,"wrong":0,"createdAt":1700000000441,"romaji":""},{"id":"s0442","word":"します","reading":"","translation":"forme présente (~ます)","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000442,"romaji":""},{"id":"s0443","word":"した","reading":"","translation":"forme passée (~ました)","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000443,"romaji":""},{"id":"s0444","word":"しましょう","reading":"","translation":"forme de suggestion : et si on... ?","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000444,"romaji":""},{"id":"s0445","word":"したいです","reading":"","translation":"vouloir faire","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000445,"romaji":""},{"id":"s0446","word":"したくないです","reading":"","translation":"ne pas vouloir faire","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000446,"romaji":""},{"id":"s0447","word":"話したいです","reading":"はなしたいです","translation":"vouloir parler","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000447,"romaji":""},{"id":"s0448","word":"行きたいです","reading":"いきたいです","translation":"vouloir aller","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000448,"romaji":""},{"id":"s0449","word":"会いたいです","reading":"あいたいです","translation":"vouloir rencontrer","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000449,"romaji":""},{"id":"s0450","word":"でかけたいです","reading":"","translation":"vouloir sortir","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000450,"romaji":""},{"id":"s0451","word":"飲みたいです","reading":"のみたいです","translation":"vouloir boire","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000451,"romaji":""},{"id":"s0452","word":"ききたいです","reading":"","translation":"vouloir écouter","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000452,"romaji":""},{"id":"s0453","word":"ねたいです","reading":"","translation":"vouloir dormir","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000453,"romaji":""},{"id":"s0454","word":"かえりたいです","reading":"","translation":"vouloir rentrer","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000454,"romaji":""},{"id":"s0455","word":"ゆっくりしたいです","reading":"","translation":"vouloir se détendre","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000455,"romaji":""},{"id":"s0456","word":"になりたいです","reading":"","translation":"vouloir devenir","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000456,"romaji":""},{"id":"s0457","word":"いたいです","reading":"","translation":"vouloir rester","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000457,"romaji":""},{"id":"s0458","word":"おきたくないです","reading":"","translation":"ne pas vouloir se lever","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000458,"romaji":""},{"id":"s0459","word":"会いたくないです","reading":"あいたくないです","translation":"ne pas vouloir rencontrer","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000459,"romaji":""},{"id":"s0460","word":"から でたくないです","reading":"","translation":"ne pas vouloir sortir de","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000460,"romaji":""},{"id":"s0461","word":"でかけましょう","reading":"","translation":"et si on sortait ?","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000461,"romaji":""},{"id":"s0462","word":"でした","reading":"","translation":"était, étaient","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000462,"romaji":""},{"id":"s0463","word":"ダメでした","reading":"","translation":"ce n'était pas bon","type":"verbe","theme":"Formes utiles","correct":0,"wrong":0,"createdAt":1700000000463,"romaji":""},{"id":"s0464","word":"高い","reading":"たかい","translation":"cher, haut","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000464,"romaji":""},{"id":"s0465","word":"安い","reading":"やすい","translation":"bon marché","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000465,"romaji":""},{"id":"s0466","word":"大きい","reading":"おおきい","translation":"grand","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000466,"romaji":""},{"id":"s0467","word":"ちいさい","reading":"","translation":"petit","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000467,"romaji":""},{"id":"s0468","word":"ながい","reading":"","translation":"long","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000468,"romaji":""},{"id":"s0469","word":"みじかい","reading":"","translation":"court","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000469,"romaji":""},{"id":"s0470","word":"ひろい","reading":"","translation":"spacieux","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000470,"romaji":""},{"id":"s0471","word":"おもい","reading":"","translation":"lourd","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000471,"romaji":""},{"id":"s0472","word":"かるい","reading":"","translation":"léger","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000472,"romaji":""},{"id":"s0473","word":"古い","reading":"ふるい","translation":"vieux, ancien","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000473,"romaji":""},{"id":"s0474","word":"はやい","reading":"","translation":"rapide","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000474,"romaji":""},{"id":"s0475","word":"おそい","reading":"","translation":"lent, en retard","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000475,"romaji":""},{"id":"s0476","word":"やわらかい","reading":"","translation":"mou, tendre","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000476,"romaji":""},{"id":"s0477","word":"うすい","reading":"","translation":"fin, léger","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000477,"romaji":""},{"id":"s0478","word":"おおい","reading":"","translation":"nombreux, copieux","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000478,"romaji":""},{"id":"s0479","word":"もっといい","reading":"","translation":"meilleur","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000479,"romaji":""},{"id":"s0480","word":"おなじ","reading":"","translation":"pareil, identique","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000480,"romaji":""},{"id":"s0481","word":"べつ","reading":"","translation":"différent (べつ の かいしゃ)","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000481,"romaji":""},{"id":"s0482","word":"さいごの","reading":"","translation":"le dernier","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000482,"romaji":""},{"id":"s0483","word":"きせつの","reading":"","translation":"de saison","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000483,"romaji":""},{"id":"s0484","word":"てづくりの","reading":"","translation":"fait maison","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1700000000484,"romaji":""},{"id":"s0485","word":"おしゃれ","reading":"","translation":"élégant, stylé","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000485,"romaji":""},{"id":"s0486","word":"ゆうめい","reading":"","translation":"célèbre","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000486,"romaji":""},{"id":"s0487","word":"すてき","reading":"","translation":"charmant, adorable","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000487,"romaji":""},{"id":"s0488","word":"きれい","reading":"","translation":"joli, propre (adj. en な)","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000488,"romaji":""},{"id":"s0489","word":"りっぱ","reading":"","translation":"splendide (adj. en な)","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000489,"romaji":""},{"id":"s0490","word":"かっこいい","reading":"","translation":"classe, beau","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000490,"romaji":""},{"id":"s0491","word":"ダサい","reading":"","translation":"ringard, moche","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000491,"romaji":""},{"id":"s0492","word":"ふわふわ","reading":"","translation":"moelleux, duveteux","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000492,"romaji":""},{"id":"s0493","word":"キラキラ","reading":"","translation":"scintillant","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000493,"romaji":""},{"id":"s0494","word":"ベタベタ","reading":"","translation":"collant","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000494,"romaji":""},{"id":"s0495","word":"ボロボロ","reading":"","translation":"usé, en lambeaux","type":"adjectif","theme":"Apparence & Impression","correct":0,"wrong":0,"createdAt":1700000000495,"romaji":""},{"id":"s0496","word":"あまい","reading":"","translation":"sucré","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000496,"romaji":""},{"id":"s0497","word":"しょっぱい","reading":"","translation":"salé","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000497,"romaji":""},{"id":"s0498","word":"からい","reading":"","translation":"épicé","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000498,"romaji":""},{"id":"s0499","word":"にがい","reading":"","translation":"amer","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000499,"romaji":""},{"id":"s0500","word":"つめたい","reading":"","translation":"froid (boisson, au toucher)","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000500,"romaji":""},{"id":"s0501","word":"ぬるい","reading":"","translation":"tiède","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000501,"romaji":""},{"id":"s0502","word":"あぶらっこい","reading":"","translation":"gras, huileux","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000502,"romaji":""},{"id":"s0503","word":"まずい","reading":"","translation":"mauvais (au goût)","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000503,"romaji":""},{"id":"s0504","word":"おいしい","reading":"","translation":"délicieux","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000504,"romaji":""},{"id":"s0505","word":"しんせん","reading":"","translation":"frais (adj. en な)","type":"adjectif","theme":"Goût & Nourriture","correct":0,"wrong":0,"createdAt":1700000000505,"romaji":""},{"id":"s0506","word":"すきな","reading":"","translation":"préféré","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000506,"romaji":""},{"id":"s0507","word":"こわい","reading":"","translation":"effrayant, faire peur","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000507,"romaji":""},{"id":"s0508","word":"つまらない","reading":"","translation":"ennuyeux","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000508,"romaji":""},{"id":"s0509","word":"むずかしい","reading":"","translation":"difficile","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000509,"romaji":""},{"id":"s0510","word":"ねむい","reading":"","translation":"somnolent","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000510,"romaji":""},{"id":"s0511","word":"しんせつ","reading":"","translation":"gentil","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000511,"romaji":""},{"id":"s0512","word":"まじめ","reading":"","translation":"sérieux, travailleur","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000512,"romaji":""},{"id":"s0513","word":"きびしい","reading":"","translation":"strict, sévère","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000513,"romaji":""},{"id":"s0514","word":"わるい","reading":"","translation":"mauvais","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000514,"romaji":""},{"id":"s0515","word":"たのしい","reading":"","translation":"amusant","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000515,"romaji":""},{"id":"s0516","word":"かいてき","reading":"","translation":"confortable","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000516,"romaji":""},{"id":"s0517","word":"ふべん","reading":"","translation":"peu pratique","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000517,"romaji":""},{"id":"s0518","word":"べんり","reading":"","translation":"pratique","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000518,"romaji":""},{"id":"s0519","word":"あぶない","reading":"","translation":"dangereux","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000519,"romaji":""},{"id":"s0520","word":"たいへん","reading":"","translation":"dur, pénible","type":"adjectif","theme":"Sentiments & Caractère","correct":0,"wrong":0,"createdAt":1700000000520,"romaji":""},{"id":"s0521","word":"ちかい","reading":"","translation":"proche","type":"adjectif","theme":"Distance & Espace","correct":0,"wrong":0,"createdAt":1700000000521,"romaji":""},{"id":"s0522","word":"ちかく","reading":"","translation":"près, à proximité","type":"adjectif","theme":"Distance & Espace","correct":0,"wrong":0,"createdAt":1700000000522,"romaji":""},{"id":"s0523","word":"とおい","reading":"","translation":"loin","type":"adjectif","theme":"Distance & Espace","correct":0,"wrong":0,"createdAt":1700000000523,"romaji":""},{"id":"s0524","word":"かいそく","reading":"","translation":"rapide (service de train)","type":"adjectif","theme":"Distance & Espace","correct":0,"wrong":0,"createdAt":1700000000524,"romaji":""},{"id":"s0525","word":"さむい","reading":"","translation":"froid (temps)","type":"adjectif","theme":"Météo","correct":0,"wrong":0,"createdAt":1700000000525,"romaji":""},{"id":"s0526","word":"あつい","reading":"","translation":"chaud (temps)","type":"adjectif","theme":"Météo","correct":1,"wrong":0,"createdAt":1700000000526,"romaji":""},{"id":"s0527","word":"あたたかい","reading":"","translation":"doux, chaud (agréable)","type":"adjectif","theme":"Météo","correct":0,"wrong":0,"createdAt":1700000000527,"romaji":""},{"id":"s0528","word":"すずしい","reading":"","translation":"frais (agréable)","type":"adjectif","theme":"Météo","correct":0,"wrong":0,"createdAt":1700000000528,"romaji":""},{"id":"s0529","word":"くらい","reading":"","translation":"sombre","type":"adjectif","theme":"Météo","correct":0,"wrong":0,"createdAt":1700000000529,"romaji":""},{"id":"s0530","word":"あつくない","reading":"","translation":"pas chaud","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000530,"romaji":""},{"id":"s0531","word":"さむくない","reading":"","translation":"pas froid","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000531,"romaji":""},{"id":"s0532","word":"くらくない","reading":"","translation":"pas sombre","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000532,"romaji":""},{"id":"s0533","word":"たのしくない","reading":"","translation":"pas amusant","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000533,"romaji":""},{"id":"s0534","word":"とおくない","reading":"","translation":"pas loin","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000534,"romaji":""},{"id":"s0535","word":"いそがしくない","reading":"","translation":"pas occupé","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000535,"romaji":""},{"id":"s0536","word":"大きくない","reading":"おおきくない","translation":"pas grand","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000536,"romaji":""},{"id":"s0537","word":"ひろくないです","reading":"","translation":"ce n'est pas spacieux","type":"adjectif","theme":"Forme négative","correct":0,"wrong":0,"createdAt":1700000000537,"romaji":""},{"id":"s0538","word":"じゃなかった","reading":"","translation":"ce n'était pas","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000538,"romaji":""},{"id":"s0539","word":"たのしかったです","reading":"","translation":"c'était amusant","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000539,"romaji":""},{"id":"s0540","word":"ひろかったです","reading":"","translation":"c'était spacieux","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000540,"romaji":""},{"id":"s0541","word":"大きかった","reading":"おおきかった","translation":"c'était grand","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000541,"romaji":""},{"id":"s0542","word":"おいしかった","reading":"","translation":"c'était délicieux","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000542,"romaji":""},{"id":"s0543","word":"うすかった","reading":"","translation":"c'était fin","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000543,"romaji":""},{"id":"s0544","word":"ぬるかった","reading":"","translation":"c'était tiède","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000544,"romaji":""},{"id":"s0545","word":"ダサかった","reading":"","translation":"c'était moche","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000545,"romaji":""},{"id":"s0546","word":"きびしかった","reading":"","translation":"c'était strict","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000546,"romaji":""},{"id":"s0547","word":"かっこよかった","reading":"","translation":"c'était classe","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000547,"romaji":""},{"id":"s0548","word":"あつかった","reading":"","translation":"c'était chaud","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000548,"romaji":""},{"id":"s0549","word":"わるかった","reading":"","translation":"c'était mauvais","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000549,"romaji":""},{"id":"s0550","word":"こわくなかった","reading":"","translation":"ce n'était pas effrayant","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000550,"romaji":""},{"id":"s0551","word":"安くなかった","reading":"やすくなかった","translation":"ce n'était pas bon marché","type":"adjectif","theme":"Forme passée","correct":0,"wrong":0,"createdAt":1700000000551,"romaji":""},{"id":"s0552","word":"いつも","reading":"","translation":"toujours, tout le temps","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000552,"romaji":""},{"id":"s0553","word":"よく","reading":"","translation":"bien, souvent","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000553,"romaji":""},{"id":"s0554","word":"たまに","reading":"","translation":"de temps en temps","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000554,"romaji":""},{"id":"s0555","word":"ぜんぜん","reading":"","translation":"pas du tout (+ négatif)","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000555,"romaji":""},{"id":"s0556","word":"あまり","reading":"","translation":"pas vraiment (+ négatif)","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000556,"romaji":""},{"id":"s0557","word":"ほとんど","reading":"","translation":"presque, presque pas","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000557,"romaji":""},{"id":"s0558","word":"たくさん","reading":"","translation":"beaucoup","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000558,"romaji":""},{"id":"s0559","word":"いろいろ","reading":"","translation":"toutes sortes de","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000559,"romaji":""},{"id":"s0560","word":"もっと","reading":"","translation":"plus","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000560,"romaji":""},{"id":"s0561","word":"だけ","reading":"","translation":"seulement, juste","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000561,"romaji":""},{"id":"s0562","word":"けっこう","reading":"","translation":"plutôt, pas mal","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000562,"romaji":""},{"id":"s0563","word":"まあまあ","reading":"","translation":"pas mal, comme ci comme ça","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000563,"romaji":""},{"id":"s0564","word":"ちょっと","reading":"","translation":"un peu, un instant","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000564,"romaji":""},{"id":"s0565","word":"半分","reading":"はんぶん","translation":"la moitié","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000565,"romaji":""},{"id":"s0566","word":"どれぐらい","reading":"","translation":"combien, à quelle fréquence","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000566,"romaji":""},{"id":"s0567","word":"むりょう","reading":"","translation":"gratuit","type":"adverbe","theme":"Fréquence & Quantité","correct":0,"wrong":0,"createdAt":1700000000567,"romaji":""},{"id":"s0568","word":"昨日","reading":"きのう","translation":"hier","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000568,"romaji":""},{"id":"s0569","word":"今日","reading":"きょう","translation":"aujourd'hui","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000569,"romaji":""},{"id":"s0570","word":"明日","reading":"あした","translation":"demain","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000570,"romaji":""},{"id":"s0571","word":"おととい","reading":"","translation":"avant-hier","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000571,"romaji":""},{"id":"s0572","word":"今夜","reading":"こんや","translation":"ce soir","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000572,"romaji":""},{"id":"s0573","word":"毎朝","reading":"まいあさ","translation":"tous les matins","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000573,"romaji":""},{"id":"s0574","word":"毎日","reading":"まいにち","translation":"tous les jours","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000574,"romaji":""},{"id":"s0575","word":"毎年","reading":"まいとし","translation":"tous les ans","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000575,"romaji":""},{"id":"s0576","word":"週末","reading":"しゅうまつ","translation":"le week-end","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000576,"romaji":""},{"id":"s0577","word":"今週","reading":"こんしゅう","translation":"cette semaine","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000577,"romaji":""},{"id":"s0578","word":"先週","reading":"せんしゅう","translation":"la semaine dernière","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000578,"romaji":""},{"id":"s0579","word":"来週","reading":"らいしゅう","translation":"la semaine prochaine","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000579,"romaji":""},{"id":"s0580","word":"今月","reading":"こんげつ","translation":"ce mois-ci","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000580,"romaji":""},{"id":"s0581","word":"先月","reading":"せんげつ","translation":"le mois dernier","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000581,"romaji":""},{"id":"s0582","word":"来月","reading":"らいげつ","translation":"le mois prochain","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000582,"romaji":""},{"id":"s0583","word":"今年","reading":"ことし","translation":"cette année","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000583,"romaji":""},{"id":"s0584","word":"きょねん","reading":"","translation":"l'an dernier","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000584,"romaji":""},{"id":"s0585","word":"来年","reading":"らいねん","translation":"l'année prochaine","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000585,"romaji":""},{"id":"s0586","word":"ごぜん","reading":"","translation":"le matin, a.m. (avant l'heure)","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000586,"romaji":""},{"id":"s0587","word":"午後","reading":"ごご","translation":"l'après-midi, p.m. (avant l'heure)","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000587,"romaji":""},{"id":"s0588","word":"あと","reading":"","translation":"après (X の あと)","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000588,"romaji":""},{"id":"s0589","word":"後で","reading":"あとで","translation":"plus tard","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000589,"romaji":""},{"id":"s0590","word":"そして","reading":"","translation":"et puis, ensuite","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000590,"romaji":""},{"id":"s0591","word":"まず","reading":"","translation":"d'abord","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000591,"romaji":""},{"id":"s0592","word":"はじめて","reading":"","translation":"pour la première fois","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000592,"romaji":""},{"id":"s0593","word":"こんど","reading":"","translation":"la prochaine fois","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000593,"romaji":""},{"id":"s0594","word":"今回","reading":"こんかい","translation":"cette fois-ci","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000594,"romaji":""},{"id":"s0595","word":"今から","reading":"いまから","translation":"dès maintenant","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000595,"romaji":""},{"id":"s0596","word":"これから","reading":"","translation":"à partir de maintenant","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000596,"romaji":""},{"id":"s0597","word":"そろそろ","reading":"","translation":"bientôt, d'ici peu","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000597,"romaji":""},{"id":"s0598","word":"もうすぐ","reading":"","translation":"bientôt, sous peu","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000598,"romaji":""},{"id":"s0599","word":"もう","reading":"","translation":"déjà, maintenant","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000599,"romaji":""},{"id":"s0600","word":"やっと","reading":"","translation":"enfin, tout juste","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000600,"romaji":""},{"id":"s0601","word":"さいきん","reading":"","translation":"récemment","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000601,"romaji":""},{"id":"s0602","word":"しばらく","reading":"","translation":"pendant un moment","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000602,"romaji":""},{"id":"s0603","word":"とちゅうで","reading":"","translation":"en chemin","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000603,"romaji":""},{"id":"s0604","word":"おそくまで","reading":"","translation":"jusqu'à tard","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000604,"romaji":""},{"id":"s0605","word":"いつ","reading":"","translation":"quand","type":"adverbe","theme":"Temps","correct":0,"wrong":0,"createdAt":1700000000605,"romaji":""},{"id":"s0606","word":"となり","reading":"","translation":"à côté de, voisin (となり の まち)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000606,"romaji":""},{"id":"s0607","word":"ちかくの","reading":"","translation":"le ... d'à côté","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000607,"romaji":""},{"id":"s0608","word":"前","reading":"まえ","translation":"devant, avant (lieu + の + 前 + に)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000608,"romaji":""},{"id":"s0609","word":"うしろ","reading":"","translation":"derrière (lieu + の + うしろ)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000609,"romaji":""},{"id":"s0610","word":"外","reading":"そと","translation":"dehors (lieu + の + 外)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000610,"romaji":""},{"id":"s0611","word":"まんなか","reading":"","translation":"au milieu (まんなか + の + lieu)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000611,"romaji":""},{"id":"s0612","word":"の中に","reading":"のなかに","translation":"à l'intérieur de (après l'objet)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000612,"romaji":""},{"id":"s0613","word":"の上に","reading":"のうえに","translation":"sur, au-dessus de (après l'objet)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000613,"romaji":""},{"id":"s0614","word":"間","reading":"あいだ","translation":"entre (X と Y の 間 に)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000614,"romaji":""},{"id":"s0615","word":"まっすぐ","reading":"","translation":"tout droit","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000615,"romaji":""},{"id":"s0616","word":"から","reading":"","translation":"depuis, de (lieu ou heure + から)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000616,"romaji":""},{"id":"s0617","word":"まで","reading":"","translation":"jusqu'à (destination ou heure + まで)","type":"adverbe","theme":"Espace & Direction","correct":0,"wrong":0,"createdAt":1700000000617,"romaji":""},{"id":"s0618","word":"どんな","reading":"","translation":"quel genre de (avant le nom)","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000618,"romaji":""},{"id":"s0619","word":"どの","reading":"","translation":"lequel, combien de temps","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000619,"romaji":""},{"id":"s0620","word":"どうやって","reading":"","translation":"comment (juste avant le verbe)","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000620,"romaji":""},{"id":"s0621","word":"どこか","reading":"","translation":"quelque part, n'importe où","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000621,"romaji":""},{"id":"s0622","word":"いくつ","reading":"","translation":"combien","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000622,"romaji":""},{"id":"s0623","word":"だれの","reading":"","translation":"à qui","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000623,"romaji":""},{"id":"s0624","word":"つぎの","reading":"","translation":"le prochain, suivant","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000624,"romaji":""},{"id":"s0625","word":"たぶん","reading":"","translation":"probablement","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000625,"romaji":""},{"id":"s0626","word":"きっと","reading":"","translation":"sûrement, j'en suis sûr","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000626,"romaji":""},{"id":"s0627","word":"かならず","reading":"","translation":"à coup sûr, sans faute","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000627,"romaji":""},{"id":"s0628","word":"でも","reading":"","translation":"mais, cependant","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000628,"romaji":""},{"id":"s0629","word":"ので","reading":"","translation":"donc, parce que (X ので)","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000629,"romaji":""},{"id":"s0630","word":"また","reading":"","translation":"encore, à nouveau, à bientôt","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000630,"romaji":""},{"id":"s0631","word":"いっしょに","reading":"","translation":"ensemble","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000631,"romaji":""},{"id":"s0632","word":"ゆっくり","reading":"","translation":"doucement, tranquillement","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000632,"romaji":""},{"id":"s0633","word":"ざんねん","reading":"","translation":"dommage, décevant","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000633,"romaji":""},{"id":"s0634","word":"たち","reading":"","translation":"suffixe de pluriel (après un nom)","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000634,"romaji":""},{"id":"s0635","word":"私たち","reading":"わたしたち","translation":"nous","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1700000000635,"romaji":""},{"id":"s0636","word":"一","reading":"いち","translation":"un","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000636,"romaji":""},{"id":"s0637","word":"二","reading":"に","translation":"deux","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000637,"romaji":""},{"id":"s0638","word":"三","reading":"さん","translation":"trois","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000638,"romaji":""},{"id":"s0639","word":"四","reading":"よん","translation":"quatre","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000639,"romaji":""},{"id":"s0640","word":"五","reading":"ご","translation":"cinq","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000640,"romaji":""},{"id":"s0641","word":"六","reading":"ろく","translation":"six","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000641,"romaji":""},{"id":"s0642","word":"七","reading":"なな","translation":"sept","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000642,"romaji":""},{"id":"s0643","word":"八","reading":"はち","translation":"huit","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000643,"romaji":""},{"id":"s0644","word":"九","reading":"きゅう","translation":"neuf","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000644,"romaji":""},{"id":"s0645","word":"十","reading":"じゅう","translation":"dix","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000645,"romaji":""},{"id":"s0646","word":"百","reading":"ひゃく","translation":"cent","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000646,"romaji":""},{"id":"s0647","word":"千","reading":"せん","translation":"mille","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000647,"romaji":""},{"id":"s0648","word":"八千","reading":"はっせん","translation":"huit mille","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000648,"romaji":""},{"id":"s0649","word":"一万","reading":"いちまん","translation":"dix mille","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000649,"romaji":""},{"id":"s0650","word":"二万","reading":"にまん","translation":"vingt mille","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000650,"romaji":""},{"id":"s0651","word":"三万","reading":"さんまん","translation":"trente mille","type":"compteur","theme":"Chiffres","correct":0,"wrong":0,"createdAt":1700000000651,"romaji":""},{"id":"s0652","word":"ひとつ","reading":"","translation":"un objet","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000652,"romaji":""},{"id":"s0653","word":"ふたつ","reading":"","translation":"deux objets","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000653,"romaji":""},{"id":"s0654","word":"みっつ","reading":"","translation":"trois objets","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000654,"romaji":""},{"id":"s0655","word":"よっつ","reading":"","translation":"quatre objets","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000655,"romaji":""},{"id":"s0656","word":"五つ","reading":"いつつ","translation":"cinq objets","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000656,"romaji":""},{"id":"s0657","word":"六つ","reading":"むっつ","translation":"six objets","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000657,"romaji":""},{"id":"s0658","word":"七つ","reading":"ななつ","translation":"sept objets","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000658,"romaji":""},{"id":"s0659","word":"やっつ","reading":"","translation":"huit objets","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000659,"romaji":""},{"id":"s0660","word":"もう一つ","reading":"もうひとつ","translation":"un de plus","type":"compteur","theme":"Objets (~つ)","correct":0,"wrong":0,"createdAt":1700000000660,"romaji":""},{"id":"s0661","word":"ひとり","reading":"","translation":"une personne","type":"compteur","theme":"Personnes","correct":0,"wrong":0,"createdAt":1700000000661,"romaji":""},{"id":"s0662","word":"ふたり","reading":"","translation":"deux personnes","type":"compteur","theme":"Personnes","correct":0,"wrong":0,"createdAt":1700000000662,"romaji":""},{"id":"s0663","word":"二人","reading":"ふたり","translation":"deux personnes","type":"compteur","theme":"Personnes","correct":0,"wrong":0,"createdAt":1700000000663,"romaji":""},{"id":"s0664","word":"四人","reading":"よにん","translation":"quatre personnes","type":"compteur","theme":"Personnes","correct":0,"wrong":0,"createdAt":1700000000664,"romaji":""},{"id":"s0665","word":"なんびき","reading":"","translation":"combien d'animaux ?","type":"compteur","theme":"Animaux (~ひき)","correct":0,"wrong":0,"createdAt":1700000000665,"romaji":""},{"id":"s0666","word":"いっぴき","reading":"","translation":"un animal","type":"compteur","theme":"Animaux (~ひき)","correct":0,"wrong":0,"createdAt":1700000000666,"romaji":""},{"id":"s0667","word":"にひき","reading":"","translation":"deux animaux","type":"compteur","theme":"Animaux (~ひき)","correct":0,"wrong":0,"createdAt":1700000000667,"romaji":""},{"id":"s0668","word":"さんびき","reading":"","translation":"trois animaux","type":"compteur","theme":"Animaux (~ひき)","correct":0,"wrong":0,"createdAt":1700000000668,"romaji":""},{"id":"s0669","word":"よんひき","reading":"","translation":"quatre animaux","type":"compteur","theme":"Animaux (~ひき)","correct":0,"wrong":0,"createdAt":1700000000669,"romaji":""},{"id":"s0670","word":"四時間","reading":"よじかん","translation":"pendant 4 heures","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000670,"romaji":""},{"id":"s0671","word":"一分","reading":"いっぷん","translation":"1 minute","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000671,"romaji":""},{"id":"s0672","word":"二分","reading":"にふん","translation":"2 minutes","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000672,"romaji":""},{"id":"s0673","word":"三分","reading":"さんぷん","translation":"3 minutes","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000673,"romaji":""},{"id":"s0674","word":"五分","reading":"ごふん","translation":"5 minutes","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000674,"romaji":""},{"id":"s0675","word":"六分","reading":"ろっぷん","translation":"6 minutes","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000675,"romaji":""},{"id":"s0676","word":"七分","reading":"ななふん","translation":"7 minutes","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000676,"romaji":""},{"id":"s0677","word":"八分","reading":"はっぷん","translation":"8 minutes","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000677,"romaji":""},{"id":"s0678","word":"十分","reading":"じゅっぷん","translation":"10 minutes","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000678,"romaji":""},{"id":"s0679","word":"二日間","reading":"ふつかかん","translation":"2 jours (durée)","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000679,"romaji":""},{"id":"s0680","word":"三日間","reading":"みっかかん","translation":"3 jours (durée)","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000680,"romaji":""},{"id":"s0681","word":"何日間","reading":"なんにちかん","translation":"combien de jours ?","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000681,"romaji":""},{"id":"s0682","word":"一週間","reading":"いっしゅうかん","translation":"une semaine","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000682,"romaji":""},{"id":"s0683","word":"一日中","reading":"いちにちじゅう","translation":"toute la journée","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000683,"romaji":""},{"id":"s0684","word":"一回","reading":"いっかい","translation":"une fois","type":"compteur","theme":"Temps & Durée","correct":0,"wrong":0,"createdAt":1700000000684,"romaji":""},{"id":"s0685","word":"一日","reading":"ついたち","translation":"le 1er","type":"compteur","theme":"Dates du mois","correct":0,"wrong":0,"createdAt":1700000000685,"romaji":""},{"id":"s0686","word":"二日","reading":"ふつか","translation":"le 2","type":"compteur","theme":"Dates du mois","correct":0,"wrong":0,"createdAt":1700000000686,"romaji":""},{"id":"s0687","word":"三日","reading":"みっか","translation":"le 3","type":"compteur","theme":"Dates du mois","correct":0,"wrong":0,"createdAt":1700000000687,"romaji":""},{"id":"s0688","word":"四日","reading":"よっか","translation":"le 4","type":"compteur","theme":"Dates du mois","correct":0,"wrong":0,"createdAt":1700000000688,"romaji":""},{"id":"s0689","word":"五日","reading":"いつか","translation":"le 5","type":"compteur","theme":"Dates du mois","correct":0,"wrong":0,"createdAt":1700000000689,"romaji":""},{"id":"s0690","word":"七日","reading":"なのか","translation":"le 7","type":"compteur","theme":"Dates du mois","correct":0,"wrong":0,"createdAt":1700000000690,"romaji":""},{"id":"s0691","word":"一番","reading":"いちばん","translation":"numéro 1, le plus","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000691,"romaji":""},{"id":"s0692","word":"一年生","reading":"いちねんせい","translation":"1re année, freshman","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000692,"romaji":""},{"id":"s0693","word":"二年生","reading":"にねんせい","translation":"2e année, sophomore","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000693,"romaji":""},{"id":"s0694","word":"何年生","reading":"なんねんせい","translation":"quelle année d'études ?","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000694,"romaji":""},{"id":"s0695","word":"はたち","reading":"","translation":"vingt ans (âge)","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000695,"romaji":""},{"id":"s0696","word":"ちか","reading":"","translation":"sous-sol","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000696,"romaji":""},{"id":"s0697","word":"いっかい","reading":"","translation":"rez-de-chaussée","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000697,"romaji":""},{"id":"s0698","word":"三階","reading":"さんがい","translation":"3e étage","type":"compteur","theme":"Rang, âge & étages","correct":0,"wrong":0,"createdAt":1700000000698,"romaji":""},{"id":"s0699","word":"何ですか","reading":"なんですか","translation":"qu'est-ce que c'est ?","type":"expression","theme":"Usuelles","correct":0,"wrong":0,"createdAt":1700000000699,"romaji":""},{"id":"s0700","word":"いつですか","reading":"","translation":"c'est quand ?","type":"expression","theme":"Usuelles","correct":0,"wrong":0,"createdAt":1700000000700,"romaji":""},{"id":"s0701","word":"ぐあいがわるい","reading":"","translation":"se sentir mal, ne pas être en forme","type":"expression","theme":"Usuelles","correct":0,"wrong":0,"createdAt":1700000000701,"romaji":""},{"id":"s0702","word":"ふたつ を ください","reading":"","translation":"deux, s'il vous plaît","type":"expression","theme":"Usuelles","correct":0,"wrong":0,"createdAt":1700000000702,"romaji":""},{"id":"s0703","word":"どこ に 行きます か","reading":"どこ に いきます か","translation":"où est-ce que ça va ?","type":"expression","theme":"Usuelles","correct":0,"wrong":0,"createdAt":1700000000703,"romaji":""},{"id":"s0704","word":"ここから","reading":"","translation":"depuis ici","type":"expression","theme":"Usuelles","correct":0,"wrong":0,"createdAt":1700000000704,"romaji":""},{"id":"s0705","word":"ここから駅まで","reading":"ここからえきまで","translation":"d'ici à la gare","type":"expression","theme":"Usuelles","correct":0,"wrong":0,"createdAt":1700000000705,"romaji":""},{"id":"u1785422966200guir","word":"犬","reading":"いぬ","translation":"Chien","type":"nom","theme":"Animaux","correct":0,"wrong":0,"createdAt":1785422966200,"romaji":""},{"id":"u17854233820849qdi","word":"かくにんします","reading":"","translation":"To confirm","type":"verbe","theme":"Communication","correct":0,"wrong":0,"createdAt":1785423382087,"romaji":""},{"id":"u17854236173747naa","word":"だいじ","reading":"","translation":"Important (adjectif en な)","type":"adjectif","theme":"Qualités générales","correct":0,"wrong":0,"createdAt":1785423617374,"romaji":""},{"id":"u1785423970839yx3l","word":"けど","reading":"","translation":"Mais","type":"adverbe","theme":"Questions & Liaisons","correct":0,"wrong":0,"createdAt":1785423970839,"romaji":""},{"id":"u1785780203756o9yg","word":"ズボン","reading":"","translation":"Pants","romaji":"","type":"nom","theme":"Vêtements","correct":0,"wrong":0,"createdAt":1785780203756},{"id":"u1785780342820ewkp","word":"きょうかしょ","reading":"","translation":"Textbook","romaji":"","type":"nom","theme":"Études","correct":0,"wrong":0,"createdAt":1785780342820},{"id":"u1785827959618n08j","word":"お金","reading":"おかね","translation":"Money","romaji":"","type":"nom","theme":"Travail","correct":0,"wrong":0,"createdAt":1785827959621},{"id":"u1785828205231vlq4","word":"捨てます","reading":"すてます","translation":"To discard","romaji":"","type":"verbe","theme":"Action","correct":0,"wrong":0,"createdAt":1785828205231}]
+</script>
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   1. TRANSCRIPTION KANA → ROMAJI ET PRONONCIATION FRANÇAISE
+   ============================================================ */
+var KANA2 = {
+  "きゃ":"kya","きゅ":"kyu","きょ":"kyo","ぎゃ":"gya","ぎゅ":"gyu","ぎょ":"gyo",
+  "しゃ":"sha","しゅ":"shu","しょ":"sho","しぇ":"she","じゃ":"ja","じゅ":"ju","じょ":"jo","じぇ":"je",
+  "ちゃ":"cha","ちゅ":"chu","ちょ":"cho","ちぇ":"che","にゃ":"nya","にゅ":"nyu","にょ":"nyo",
+  "ひゃ":"hya","ひゅ":"hyu","ひょ":"hyo","びゃ":"bya","びゅ":"byu","びょ":"byo",
+  "ぴゃ":"pya","ぴゅ":"pyu","ぴょ":"pyo","みゃ":"mya","みゅ":"myu","みょ":"myo",
+  "りゃ":"rya","りゅ":"ryu","りょ":"ryo",
+  "ふぁ":"fa","ふぃ":"fi","ふぇ":"fe","ふぉ":"fo","ふゅ":"fyu",
+  "てぃ":"ti","でぃ":"di","とぅ":"tu","どぅ":"du","つぁ":"tsa","つぃ":"tsi","つぇ":"tse","つぉ":"tso",
+  "うぃ":"wi","うぇ":"we","うぉ":"wo","ゔぁ":"va","ゔぃ":"vi","ゔぇ":"ve","ゔぉ":"vo",
+  "くぁ":"kwa","ぐぁ":"gwa","じゅ":"ju"
+};
+var KANA1 = {
+  "あ":"a","い":"i","う":"u","え":"e","お":"o",
+  "か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko",
+  "が":"ga","ぎ":"gi","ぐ":"gu","げ":"ge","ご":"go",
+  "さ":"sa","し":"shi","す":"su","せ":"se","そ":"so",
+  "ざ":"za","じ":"ji","ず":"zu","ぜ":"ze","ぞ":"zo",
+  "た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to",
+  "だ":"da","ぢ":"ji","づ":"zu","で":"de","ど":"do",
+  "な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no",
+  "は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho",
+  "ば":"ba","び":"bi","ぶ":"bu","べ":"be","ぼ":"bo",
+  "ぱ":"pa","ぴ":"pi","ぷ":"pu","ぺ":"pe","ぽ":"po",
+  "ま":"ma","み":"mi","む":"mu","め":"me","も":"mo",
+  "や":"ya","ゆ":"yu","よ":"yo","ゃ":"ya","ゅ":"yu","ょ":"yo",
+  "ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro",
+  "わ":"wa","ゐ":"i","ゑ":"e","を":"o","ん":"n","ゔ":"vu",
+  "ぁ":"a","ぃ":"i","ぅ":"u","ぇ":"e","ぉ":"o"
+};
+
+function toHiragana(s){
+  var out="";
+  for(var i=0;i<s.length;i++){
+    var c=s.charCodeAt(i);
+    if(c>=0x30A1 && c<=0x30F6) out+=String.fromCharCode(c-0x60);
+    else out+=s[i];
+  }
+  return out;
+}
+function isKana(ch){
+  var c=ch.charCodeAt(0);
+  return (c>=0x3041&&c<=0x3096)||(c>=0x30A1&&c<=0x30FA)||ch==="ー"||ch==="っ"||ch==="ッ";
+}
+/* Découpe une chaîne de kana en mores romanisées. Renvoie null si non transcriptible. */
+function toMorae(src){
+  if(!src) return null;
+  var s=toHiragana(String(src).trim());
+  if(!s) return null;
+  var morae=[], i=0, pendingSokuon=false, ok=false;
+  while(i<s.length){
+    var ch=s[i];
+    if(ch==="っ"){ pendingSokuon=true; i++; ok=true; continue; }
+    if(ch==="ー"||ch==="－"||ch==="-"){
+      if(morae.length){ morae[morae.length-1].long=true; }
+      i++; ok=true; continue;
+    }
+    var two=s.substr(i,2), r=null, len=1;
+    if(KANA2[two]){ r=KANA2[two]; len=2; }
+    else if(KANA1[ch]){ r=KANA1[ch]; len=1; }
+    if(r===null){
+      if(/\s/.test(ch)){ i++; continue; }
+      return null; /* kanji ou caractère inconnu : pas de transcription fiable */
+    }
+    ok=true;
+    if(pendingSokuon){ r=r[0]+r; pendingSokuon=false; }
+    /* voyelle longue écrite : おう / うう / ええ ... */
+    var prev=morae[morae.length-1];
+    if(prev && len===1){
+      var pv=prev.r.slice(-1);
+      if((ch==="う"&&(pv==="o"||pv==="u")) || (ch==="あ"&&pv==="a") || (ch==="い"&&pv==="i")
+         || (ch==="お"&&pv==="o") || (ch==="え"&&pv==="e")){
+        prev.long=true; i+=len; continue;
+      }
+    }
+    morae.push({r:r, long:false});
+    i+=len;
+  }
+  return ok && morae.length ? morae : null;
+}
+var LONG_HEP={a:"ā",i:"ī",u:"ū",e:"ē",o:"ō"};
+function hepburnOf(morae){
+  return morae.map(function(m){
+    var v=m.r.slice(-1);
+    return m.long && LONG_HEP[v] ? m.r.slice(0,-1)+LONG_HEP[v] : m.r;
+  }).join("-");
+}
+/* Conversion d'une more Hepburn vers une graphie lisible par un francophone */
+function frenchMora(r, isFirst, prevEndsVowel){
+  var t=r;
+  t=t.replace(/ch/g,"tch");
+  t=t.replace(/sh/g,"ch");
+  t=t.replace(/^j/,"dj").replace(/([^d])j/g,"$1dj");
+  t=t.replace(/u/g,"ou");
+  t=t.replace(/^([bcdfghjklmnpqrstvwxyz]*)g([ie])/,"$1gu$2");
+  t=t.replace(/e/g,"é");
+  t=t.replace(/^r/,"r");
+  if(t==="o"&&r==="o") t="o";
+  if(r==="n") t="n'";
+  if(t[0]==="s" && t[1]!=="s" && !isFirst && prevEndsVowel) t="s"+t;
+  return t;
+}
+var LONG_FR={a:"â",i:"î",ou:"oû",é:"ê",o:"ô"};
+function frenchOf(morae){
+  var parts=[], prevVowel=false;
+  for(var k=0;k<morae.length;k++){
+    var t=frenchMora(morae[k].r, k===0, prevVowel);
+    if(morae[k].long){
+      if(/ou$/.test(t)) t=t.slice(0,-2)+"oû";
+      else{
+        var last=t.slice(-1);
+        if(LONG_FR[last]) t=t.slice(0,-1)+LONG_FR[last];
+      }
+    }
+    parts.push(t);
+    prevVowel=/[aiouéêâîôû]$/.test(t);
+  }
+  return parts.join("-");
+}
+/* Source de kana : la lecture si elle existe, sinon le mot s'il est déjà en kana */
+function kanaSource(w){
+  if(w.reading && w.reading.trim()) return w.reading.trim();
+  var word=(w.word||"").trim();
+  for(var i=0;i<word.length;i++){ if(!isKana(word[i]) && !/\s/.test(word[i])) return null; }
+  return word || null;
+}
+function pronunciation(w){
+  if(w.romaji && w.romaji.trim()) return {hepburn:null, fr:w.romaji.trim(), custom:true};
+  var src=kanaSource(w);
+  var m=src ? toMorae(src) : null;
+  if(!m) return null;
+  return {hepburn:hepburnOf(m), fr:frenchOf(m), custom:false};
+}
+
+/* ============================================================
+   2. DONNÉES ET STOCKAGE
+   ============================================================ */
+var KEY="vocab-v2", META="vocab-v2-meta";
+var TYPES=[
+  {id:"nom",      kanji:"名詞",  label:"Noms",      accent:"",             ghost:"名"},
+  {id:"verbe",    kanji:"動詞",  label:"Verbes",    accent:"accent-red",   ghost:"動"},
+  {id:"adjectif", kanji:"形容詞",label:"Adjectifs", accent:"accent-jade",  ghost:"形"},
+  {id:"adverbe",  kanji:"副詞",  label:"Adverbes",  accent:"accent-blue",  ghost:"副"}
+];
+var EXTRA_TYPES=[
+  {id:"compteur",  kanji:"助数詞",label:"Compteurs",  accent:"",           ghost:"数"},
+  {id:"expression",kanji:"表現",  label:"Expressions",accent:"accent-red", ghost:"表"}
+];
+var ALL_TYPES=TYPES.concat(EXTRA_TYPES);
+
+var words=[], meta={lastBackup:null, pending:0}, currentType=null, currentTheme="__all__",
+    editing=null, syncDismissed=false;
+
+function copy(o){ var n={}; for(var k in o) n[k]=o[k]; return n; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function ruby(w){ return w.reading ? "<ruby>"+esc(w.word)+"<rt>"+esc(w.reading)+"</rt></ruby>" : esc(w.word); }
+function mastered(w){ return (w.correct||0)>=3 && (w.correct||0)-(w.wrong||0)>=3; }
+function struggling(w){ return (w.wrong||0)>0 && (w.wrong||0)>=(w.correct||0); }
+function typeInfo(id){ for(var i=0;i<ALL_TYPES.length;i++) if(ALL_TYPES[i].id===id) return ALL_TYPES[i];
+  return {id:id,kanji:id,label:id,accent:"",ghost:"?"}; }
+function themesOf(t){ var s=[],seen={};
+  words.forEach(function(w){ if(w.type===t&&!seen[w.theme]){seen[w.theme]=1;s.push(w.theme);} });
+  return s.sort(function(a,b){return a.localeCompare(b,'fr');}); }
+function payload(){
+  return JSON.stringify({format:"carnet-vocabulaire-japonais", version:3,
+    exportedAt:new Date().toISOString(), words:words}, null, 1);
+}
+
+function load(){
+  try{
+    var raw=localStorage.getItem(KEY);
+    words = raw ? JSON.parse(raw) : SEED.map(copy);
+    if(!Array.isArray(words)||!words.length) words=SEED.map(copy);
+  }catch(e){ console.error(e); words=SEED.map(copy); }
+  try{ var m=localStorage.getItem(META); if(m) meta=JSON.parse(m)||meta; }catch(e){}
+  if(typeof meta.pending!=="number") meta.pending=0;
+}
+function saveLocal(){
+  try{ localStorage.setItem(KEY, JSON.stringify(words)); return true; }
+  catch(e){ alert("Enregistrement impossible : le stockage du navigateur est plein ou bloqué. Exporte ton carnet sans attendre."); return false; }
+}
+function saveMeta(){ try{ localStorage.setItem(META, JSON.stringify(meta)); }catch(e){} }
+
+/* Appelé à CHAQUE modification du carnet */
+function commit(isContentChange){
+  saveLocal();
+  if(isContentChange){
+    meta.pending=(meta.pending||0)+1; saveMeta();
+    scheduleSync();
+  }
+  renderSyncBar();
+}
+
+/* ============================================================
+   3. COMPTE GOOGLE ET SYNCHRONISATION DRIVE
+   ============================================================ */
+var CLIENT_ID="474488153091-s3f5gret33s88dbhf085ortmj1srmkn1.apps.googleusercontent.com";
+var SCOPE="https://www.googleapis.com/auth/drive.file";
+var FOLDER_NAME="Jisho";
+var PARENT_FOLDER_NAME="Sauvegarde";
+var FILE_NAME="carnet-japonais.json";
+var SESSION_DAYS=30;
+
+var SESS="jisho-session", BASE="jisho-base";
+var tokenClient=null, accessToken=null, tokenExpiry=0;
+var account=null;          /* {email, ts} */
+var driveFolderId=null, driveFileId=null;
+var syncing=false, syncQueued=false, autoSyncTimer=null;
+var pendingConflicts=null, conflictChoices=null, conflictResolve=null;
+
+function loadSession(){
+  try{ account=JSON.parse(localStorage.getItem(SESS)||"null"); }catch(e){ account=null; }
+}
+function saveSession(){
+  try{ localStorage.setItem(SESS, JSON.stringify(account)); }catch(e){}
+}
+function clearSession(){
+  account=null; accessToken=null; tokenExpiry=0; driveFileId=null; driveFolderId=null;
+  try{ localStorage.removeItem(SESS); localStorage.removeItem(BASE); }catch(e){}
+}
+function sessionValid(){
+  if(!account || !account.ts) return false;
+  return (Date.now()-account.ts) < SESSION_DAYS*86400000;
+}
+/* Instantané de la dernière version commune aux deux côtés */
+function getBase(){
+  try{ return JSON.parse(localStorage.getItem(BASE)||"null"); }catch(e){ return null; }
+}
+function setBase(list){
+  try{ localStorage.setItem(BASE, JSON.stringify(list)); }catch(e){}
+}
+
+function chip(text, kind){
+  var c=document.getElementById("sync-chip");
+  if(!text){ c.hidden=true; return; }
+  c.className="sync-chip"+(kind?" "+kind:"");
+  document.getElementById("sync-chip-txt").textContent=text;
+  c.hidden=false;
+  if(kind==="ok"||kind==="err"){
+    clearTimeout(c._t);
+    c._t=setTimeout(function(){ c.hidden=true; }, kind==="err"?5000:2200);
+  }
+}
+
+/* ---------- Jeton d'accès ---------- */
+function gisReady(){ return !!(window.google && google.accounts && google.accounts.oauth2); }
+
+function initTokenClient(){
+  if(tokenClient || !gisReady()) return;
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID, scope:SCOPE, callback:function(){}
+  });
+}
+/* interactive=true autorise l'ouverture d'une fenêtre Google ; false = renouvellement silencieux */
+function getToken(interactive){
+  return new Promise(function(resolve, reject){
+    if(accessToken && Date.now()<tokenExpiry-60000) return resolve(accessToken);
+    if(!navigator.onLine) return reject(new Error("offline"));
+    initTokenClient();
+    if(!tokenClient) return reject(new Error("gis"));
+    tokenClient.callback=function(resp){
+      if(resp && resp.access_token){
+        accessToken=resp.access_token;
+        tokenExpiry=Date.now()+((resp.expires_in||3600)*1000);
+        resolve(accessToken);
+      } else reject(new Error((resp&&resp.error)||"token"));
+    };
+    tokenClient.error_callback=function(err){ reject(new Error((err&&err.type)||"token")); };
+    try{
+      tokenClient.requestAccessToken({prompt: interactive ? "" : "none"});
+    }catch(e){ reject(e); }
+  });
+}
+
+function api(url, opts){
+  opts=opts||{};
+  return getToken(false).then(function(tok){
+    opts.headers=opts.headers||{};
+    opts.headers["Authorization"]="Bearer "+tok;
+    return fetch(url, opts);
+  }).then(function(r){
+    if(r.status===401){ accessToken=null; tokenExpiry=0; throw new Error("auth"); }
+    if(!r.ok) throw new Error("http"+r.status);
+    return r;
+  });
+}
+
+function fetchEmail(){
+  return api("https://www.googleapis.com/oauth2/v3/userinfo")
+    .then(function(r){ return r.json(); })
+    .then(function(j){ return j.email||""; })
+    .catch(function(){ return ""; });
+}
+
+/* ---------- Emplacement du fichier dans le Drive ---------- */
+/* Cherche un dossier par son nom parmi les fichiers visibles de l'app.
+   Rappel : avec le scope drive.file, seuls les éléments créés par Jisho
+   sont visibles — un dossier créé à la main dans Drive reste invisible. */
+function findFolder(name){
+  var q=encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='"+
+        name+"' and trashed=false");
+  return api("https://www.googleapis.com/drive/v3/files?q="+q+"&fields=files(id,name)&spaces=drive")
+    .then(function(r){ return r.json(); })
+    .then(function(j){ return (j.files && j.files.length) ? j.files[0].id : null; })
+    .catch(function(){ return null; });
+}
+function ensureFolder(){
+  if(driveFolderId) return Promise.resolve(driveFolderId);
+  return findFolder(FOLDER_NAME).then(function(id){
+    if(id){ driveFolderId=id; return driveFolderId; }
+    /* Si le dossier parent est accessible (cas où il a été créé par l'app),
+       on y range Jisho directement. Sinon Jisho est créé à la racine et
+       tu le déplaces une fois à la main : l'app le retrouvera ensuite. */
+    return findFolder(PARENT_FOLDER_NAME).then(function(pid){
+      var body={name:FOLDER_NAME, mimeType:"application/vnd.google-apps.folder"};
+      if(pid) body.parents=[pid];
+      return api("https://www.googleapis.com/drive/v3/files",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(body)
+      }).then(function(r){ return r.json(); })
+        .then(function(f){
+          driveFolderId=f.id;
+          if(!pid && !meta.folderHintShown){
+            meta.folderHintShown=true; saveMeta();
+            setTimeout(function(){
+              alert("Le dossier « "+FOLDER_NAME+" » vient d'être créé à la racine de ton Drive.\n\n"+
+                "Tu peux le déplacer dans « "+PARENT_FOLDER_NAME+" » : l'app le retrouvera tout seul, "+
+                "où que tu le ranges. Elle ne peut pas l'y placer elle-même car elle ne voit "+
+                "que les fichiers qu'elle a créés.");
+            },600);
+          }
+          return driveFolderId;
+        });
+    });
+  });
+}
+/* Le fichier est recherché par nom partout dans le Drive : il reste retrouvable
+   même si tu le déplaces ensuite dans un autre dossier. */
+function findFile(){
+  if(driveFileId) return Promise.resolve(driveFileId);
+  var q=encodeURIComponent("name='"+FILE_NAME+"' and trashed=false");
+  return api("https://www.googleapis.com/drive/v3/files?q="+q+
+             "&fields=files(id,name,modifiedTime)&spaces=drive&orderBy=modifiedTime desc")
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(j.files && j.files.length){ driveFileId=j.files[0].id; return driveFileId; }
+      return null;
+    });
+}
+function readRemote(){
+  return findFile().then(function(id){
+    if(!id) return null;
+    return api("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media")
+      .then(function(r){ return r.json(); })
+      .catch(function(){ return null; });
+  });
+}
+function writeRemote(list){
+  var body=JSON.stringify({format:"carnet-vocabulaire-japonais", version:4,
+    exportedAt:new Date().toISOString(), words:list}, null, 1);
+  return findFile().then(function(id){
+    if(id){
+      return api("https://www.googleapis.com/upload/drive/v3/files/"+id+"?uploadType=media",{
+        method:"PATCH", headers:{"Content-Type":"application/json"}, body:body
+      });
+    }
+    return ensureFolder().then(function(fid){
+      var meta={name:FILE_NAME, parents:[fid]};
+      var boundary="-------jisho"+Date.now();
+      var multipart=
+        "--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+
+        JSON.stringify(meta)+"\r\n--"+boundary+
+        "\r\nContent-Type: application/json\r\n\r\n"+body+"\r\n--"+boundary+"--";
+      return api("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{
+        method:"POST", headers:{"Content-Type":"multipart/related; boundary="+boundary},
+        body:multipart
+      }).then(function(r){ return r.json(); })
+        .then(function(f){ driveFileId=f.id; return f; });
+    });
+  });
+}
+
+/* ---------- Fusion à trois versions ---------- */
+var FIELDS=["word","reading","translation","romaji","type","theme"];
+function sig(w){ return FIELDS.map(function(f){ return String(w[f]==null?"":w[f]); }).join("\u0001"); }
+function byId(list){ var m={}; (list||[]).forEach(function(w){ if(w&&w.id) m[w.id]=w; }); return m; }
+
+/* Les compteurs de révision se cumulent au lieu d'entrer en conflit :
+   on garde la valeur la plus avancée de chaque côté. */
+function mergeStats(a,b){
+  return {correct:Math.max(a&&a.correct||0, b&&b.correct||0),
+          wrong:Math.max(a&&a.wrong||0, b&&b.wrong||0)};
+}
+function threeWayMerge(base, local, remote){
+  var B=byId(base), L=byId(local), R=byId(remote);
+  var ids={}, out=[], conflicts=[];
+  [B,L,R].forEach(function(m){ for(var k in m) ids[k]=1; });
+
+  for(var id in ids){
+    var b=B[id], l=L[id], r=R[id];
+
+    if(l && r){
+      var lChanged = !b || sig(l)!==sig(b);
+      var rChanged = !b || sig(r)!==sig(b);
+      var st=mergeStats(l,r);
+      if(sig(l)===sig(r)){ out.push(withStats(l,st)); }
+      else if(lChanged && !rChanged){ out.push(withStats(l,st)); }
+      else if(!lChanged && rChanged){ out.push(withStats(r,st)); }
+      else { conflicts.push({id:id, local:l, remote:r, stats:st}); }
+      continue;
+    }
+    if(l && !r){
+      if(b && sig(l)===sig(b)) continue;        /* supprimé à distance, inchangé ici */
+      out.push(l);                               /* ajouté ici, ou modifié puis supprimé ailleurs */
+      continue;
+    }
+    if(r && !l){
+      if(b && sig(r)===sig(b)) continue;        /* supprimé ici, inchangé à distance */
+      out.push(r);
+      continue;
+    }
+  }
+  out.sort(function(a,b2){ return (a.createdAt||0)-(b2.createdAt||0); });
+  return {merged:out, conflicts:conflicts};
+}
+function withStats(w, st){
+  var n=copy(w); n.correct=st.correct; n.wrong=st.wrong; return n;
+}
+
+/* ---------- Écran de résolution ---------- */
+function askConflicts(list){
+  return new Promise(function(resolve){
+    pendingConflicts=list;
+    conflictChoices={};
+    list.forEach(function(c){ conflictChoices[c.id]="local"; });
+    conflictResolve=resolve;
+    document.getElementById("conflict-intro").textContent =
+      list.length+" mot"+(list.length>1?"s ont":" a")+" été modifié"+(list.length>1?"s":"")+
+      " des deux côtés depuis la dernière synchronisation. Choisis la version à garder.";
+    renderConflicts();
+    document.getElementById("conflict").hidden=false;
+  });
+}
+function conflictLabel(w){
+  return (w.word||"")+(w.reading?" ("+w.reading+")":"")+" — "+(w.translation||"")+
+         " · "+typeInfo(w.type).label+" / "+(w.theme||"");
+}
+function renderConflicts(){
+  document.getElementById("conflict-list").innerHTML=pendingConflicts.map(function(c){
+    var sel=conflictChoices[c.id];
+    return '<div class="cf-item"><div class="cf-word">'+esc(c.local.word||c.remote.word)+'</div>'+
+      '<div class="cf-opts">'+
+      '<button class="cf-opt'+(sel==="local"?" sel":"")+'" data-id="'+c.id+'" data-pick="local">'+
+        '<span class="cf-src">Cet appareil</span><span class="cf-val">'+esc(conflictLabel(c.local))+'</span></button>'+
+      '<button class="cf-opt'+(sel==="remote"?" sel":"")+'" data-id="'+c.id+'" data-pick="remote">'+
+        '<span class="cf-src">Drive</span><span class="cf-val">'+esc(conflictLabel(c.remote))+'</span></button>'+
+      '</div></div>';
+  }).join("");
+  document.querySelectorAll("#conflict-list .cf-opt").forEach(function(b){
+    b.addEventListener("click",function(){
+      conflictChoices[b.dataset.id]=b.dataset.pick; renderConflicts();
+    });
+  });
+}
+document.getElementById("conflict-all-local").addEventListener("click",function(){
+  pendingConflicts.forEach(function(c){ conflictChoices[c.id]="local"; });
+  renderConflicts();
+});
+document.getElementById("conflict-apply").addEventListener("click",function(){
+  var picked=pendingConflicts.map(function(c){
+    var w=conflictChoices[c.id]==="remote" ? c.remote : c.local;
+    return withStats(w, c.stats);
+  });
+  document.getElementById("conflict").hidden=true;
+  var r=conflictResolve; pendingConflicts=null; conflictResolve=null;
+  if(r) r(picked);
+});
+
+/* ---------- Cycle de synchronisation ---------- */
+function sync(interactive){
+  if(syncing){ syncQueued=true; return Promise.resolve(false); }
+  if(!account) return Promise.resolve(false);
+  if(!navigator.onLine){ if(interactive) chip("Hors ligne — synchro reportée","err"); return Promise.resolve(false); }
+  syncing=true;
+  chip("Synchronisation…");
+
+  return readRemote().then(function(remoteDoc){
+    var remote = remoteDoc ? (Array.isArray(remoteDoc)?remoteDoc:remoteDoc.words) : null;
+    var base=getBase();
+
+    if(!remote){                       /* premier envoi : le Drive est vide */
+      return writeRemote(words).then(function(){ setBase(words); return "up"; });
+    }
+    if(!base){                         /* pas de référence commune : fusion prudente sans suppression */
+      var r0=threeWayMerge([], words, remote);
+      return finish(r0);
+    }
+    var r=threeWayMerge(base, words, remote);
+    return finish(r);
+
+    function finish(r){
+      var step = r.conflicts.length ? askConflicts(r.conflicts) : Promise.resolve([]);
+      return step.then(function(resolved){
+        var final=r.merged.concat(resolved);
+        final.sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+        words=final;
+        saveLocal();
+        return writeRemote(words).then(function(){
+          setBase(words); return "sync";
+        });
+      });
+    }
+  }).then(function(kind){
+    meta.lastBackup=Date.now(); meta.pending=0; saveMeta();
+    renderHome(); renderSave(); renderSyncBar();
+    if(current==="list"){ renderChips(); renderList(); }
+    chip(kind==="up"?"Carnet envoyé sur Drive":"Carnet synchronisé","ok");
+    syncing=false;
+    if(syncQueued){ syncQueued=false; setTimeout(function(){ sync(false); },400); }
+    return true;
+  }).catch(function(err){
+    syncing=false;
+    var m=String(err&&err.message||err);
+    if(m==="auth"||m==="token"){
+      chip("Reconnexion nécessaire","err");
+      if(interactive) signIn();
+    } else if(m==="offline"){
+      chip("Hors ligne — synchro reportée","err");
+    } else {
+      chip("Échec de la synchronisation","err");
+    }
+    renderSave();
+    return false;
+  });
+}
+function scheduleSync(){
+  if(!account) return;
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer=setTimeout(function(){ sync(false); }, 2500);
+}
+
+/* ---------- Connexion / déconnexion ---------- */
+function signIn(){
+  if(!gisReady()){
+    alert("La connexion Google n'a pas pu se charger. Vérifie ta connexion internet puis réessaie.");
+    return;
+  }
+  getToken(true).then(function(){
+    return fetchEmail();
+  }).then(function(email){
+    account={email:email, ts:Date.now()};
+    saveSession();
+    closeGate();
+    renderSave();
+    return sync(true);
+  }).catch(function(err){
+    var m=String(err&&err.message||err);
+    if(m!=="popup_closed" && m!=="access_denied"){
+      document.getElementById("gate-note").textContent=
+        "La connexion n'a pas abouti. Réessaie, ou continue hors ligne.";
+    }
+    document.getElementById("gate-offline").hidden=false;
+  });
+}
+function signOut(){
+  if(!confirm("Se déconnecter ? Ton carnet reste sur cet appareil et sur Drive.")) return;
+  try{ if(accessToken && gisReady()) google.accounts.oauth2.revoke(accessToken, function(){}); }catch(e){}
+  clearSession();
+  renderSave();
+  openGate();
+}
+
+/* ---------- Écran de garde ---------- */
+function openGate(){
+  document.getElementById("gate").hidden=false;
+  document.getElementById("gate-offline").hidden = !sessionValid();
+  document.getElementById("gate-note").textContent="";
+}
+function closeGate(){ document.getElementById("gate").hidden=true; }
+
+document.getElementById("gate-signin").addEventListener("click", signIn);
+document.getElementById("gate-offline").addEventListener("click", function(){
+  closeGate(); chip("Mode hors ligne","ok");
+});
+document.getElementById("btn-signin").addEventListener("click", signIn);
+document.getElementById("btn-signout").addEventListener("click", signOut);
+document.getElementById("btn-sync").addEventListener("click", function(){ sync(true); });
+
+window.addEventListener("online", function(){ if(account) scheduleSync(); });
+
+/* ============================================================
+   4. NAVIGATION
+   ============================================================ */
+var screens={home:"s-home", list:"s-list", quiz:"s-quiz", save:"s-save"};
+var current="home";
+function show(name){
+  current=name;
+  for(var k in screens) document.getElementById(screens[k]).classList.toggle("active", k===name);
+  document.querySelectorAll("nav.bottom button").forEach(function(b){
+    var nav=b.dataset.nav;
+    b.classList.toggle("active", nav===name || (name==="list"&&nav==="home"));
+  });
+  document.getElementById("back").hidden = (name!=="list");
+  document.getElementById("fab").hidden = (name==="quiz"||name==="save");
+  var t=document.getElementById("top-title"), s=document.getElementById("top-sub");
+  if(name==="list"&&currentType){ var ti=typeInfo(currentType); t.textContent=ti.kanji; s.textContent=ti.label; }
+  else if(name==="quiz"){ t.textContent="復習"; s.textContent="Séance de révision"; }
+  else if(name==="save"){ t.textContent="保存"; s.textContent="Sauvegarde et restauration"; }
+  else { t.textContent="語彙帳"; s.textContent="Mon carnet de vocabulaire japonais"; }
+  renderSyncBar();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav.bottom button").forEach(function(b){
+  b.addEventListener("click",function(){
+    var n=b.dataset.nav;
+    if(n==="home"){ currentType=null; renderHome(); show("home"); }
+    else if(n==="quiz"){ resetQuiz(); show("quiz"); }
+    else { renderSave(); show("save"); }
+  });
+});
+document.getElementById("back").addEventListener("click",function(){ currentType=null; renderHome(); show("home"); });
+document.getElementById("logo").addEventListener("click",function(){ currentType=null; renderHome(); show("home"); });
+
+/* ============================================================
+   5. ACCUEIL
+   ============================================================ */
+function countOf(t){ var n=0; words.forEach(function(w){ if(w.type===t) n++; }); return n; }
+function cardHtml(ti,small){
+  return '<button class="cat-card '+ti.accent+(small?" is-small":"")+'" data-type="'+ti.id+'">'+
+    '<span class="ghost">'+ti.ghost+'</span><span class="kanji">'+ti.kanji+'</span>'+
+    '<span class="name">'+ti.label+'</span><span class="count">'+countOf(ti.id)+' mots</span></button>';
+}
+function renderHome(){
+  document.getElementById("home-main").innerHTML=TYPES.map(function(t){return cardHtml(t,false);}).join("");
+  document.getElementById("home-extra").innerHTML=EXTRA_TYPES.map(function(t){return cardHtml(t,true);}).join("");
+  document.querySelectorAll(".cat-card").forEach(function(c){
+    c.addEventListener("click",function(){ openType(c.dataset.type); });
+  });
+  var done=0,todo=0;
+  words.forEach(function(w){ if(mastered(w)) done++; else if(struggling(w)) todo++; });
+  document.getElementById("st-total").textContent=words.length;
+  document.getElementById("st-done").textContent=done;
+  document.getElementById("st-todo").textContent=todo;
+}
+document.getElementById("go-quiz-all").addEventListener("click",function(){ resetQuiz(); show("quiz"); });
+
+/* ============================================================
+   6. LISTE
+   ============================================================ */
+var searchEl=document.getElementById("search");
+function openType(t){ currentType=t; currentTheme="__all__"; searchEl.value=""; renderChips(); renderList(); show("list"); }
+function renderChips(){
+  var box=document.getElementById("theme-chips");
+  var html='<button class="chip'+(currentTheme==="__all__"?" active":"")+'" data-t="__all__">Tout ('+countOf(currentType)+')</button>';
+  themesOf(currentType).forEach(function(th){
+    var n=words.filter(function(w){return w.type===currentType&&w.theme===th;}).length;
+    html+='<button class="chip'+(currentTheme===th?" active":"")+'" data-t="'+esc(th)+'">'+esc(th)+' ('+n+')</button>';
+  });
+  box.innerHTML=html;
+  box.querySelectorAll(".chip").forEach(function(c){
+    c.addEventListener("click",function(){ currentTheme=c.dataset.t; renderChips(); renderList(); });
+  });
+}
+function renderList(){
+  var q=(searchEl.value||"").trim().toLowerCase();
+  var out=words.filter(function(w){
+    if(w.type!==currentType) return false;
+    if(currentTheme!=="__all__" && w.theme!==currentTheme) return false;
+    if(!q) return true;
+    return (w.word||"").toLowerCase().indexOf(q)>=0 || (w.reading||"").toLowerCase().indexOf(q)>=0
+        || (w.translation||"").toLowerCase().indexOf(q)>=0;
+  });
+  out.sort(function(a,b){
+    if(a.theme!==b.theme) return a.theme.localeCompare(b.theme,'fr');
+    return (a.createdAt||0)-(b.createdAt||0);
+  });
+  var accent=typeInfo(currentType).accent;
+  var box=document.getElementById("word-list");
+  box.innerHTML=out.map(function(w){
+    return '<div class="word-card '+accent+'" data-id="'+w.id+'">'+
+      (mastered(w)?'<div class="stamp">済</div>':'')+
+      '<div class="jw">'+ruby(w)+'</div><div class="tr">'+esc(w.translation)+'</div>'+
+      (currentTheme==="__all__"?'<div class="th">'+esc(w.theme)+'</div>':'')+'</div>';
+  }).join("");
+  box.querySelectorAll(".word-card").forEach(function(c){
+    c.addEventListener("click",function(){ openModal(c.dataset.id); });
+  });
+  document.getElementById("list-empty").hidden = out.length>0;
+  document.getElementById("list-empty-txt").textContent = q ? "Aucun résultat pour cette recherche."
+    : "Aucun mot dans ce thème. Appuie sur ＋ pour en ajouter un.";
+}
+searchEl.addEventListener("input", renderList);
+
+/* ============================================================
+   7. MODALE (détail / édition) AVEC PRONONCIATION
+   ============================================================ */
+var modal=document.getElementById("modal"), mWord=document.getElementById("m-word"),
+    mRead=document.getElementById("m-reading"), mTrans=document.getElementById("m-trans"),
+    mType=document.getElementById("m-type"), mTheme=document.getElementById("m-theme"),
+    mNewWrap=document.getElementById("m-newtheme-wrap"), mNew=document.getElementById("m-newtheme"),
+    mRomaji=document.getElementById("m-romaji");
+
+function fillTypeSelect(sel,withAll){
+  sel.innerHTML=(withAll?'<option value="__all__">Toutes les catégories</option>':'')+
+    ALL_TYPES.map(function(t){return '<option value="'+t.id+'">'+t.label+'</option>';}).join("");
+}
+function fillThemeSelect(sel,type,withAll,selected){
+  sel.innerHTML=(withAll?'<option value="__all__">Tous les thèmes</option>':'')+
+    themesOf(type).map(function(t){return '<option value="'+esc(t)+'">'+esc(t)+'</option>';}).join("")+
+    (withAll?'':'<option value="__new__">＋ Nouveau thème…</option>');
+  if(selected) sel.value=selected;
+}
+function renderPron(){
+  var w={word:mWord.value.trim(), reading:mRead.value.trim(), romaji:mRomaji.value.trim()};
+  document.getElementById("pron-jp").innerHTML = w.word ? ruby(w) : '<span style="opacity:.4">—</span>';
+  var p=pronunciation(w), box=document.getElementById("pron-rows");
+  if(!p){
+    box.innerHTML='<div class="none">Ajoute la lecture en kana ci-dessous pour obtenir la prononciation, ou saisis-la à la main.</div>';
+    return;
+  }
+  var html="";
+  if(p.hepburn) html+='<div class="row"><b>Rōmaji</b><span class="val">'+esc(p.hepburn)+'</span></div>';
+  html+='<div class="row"><b>À l\'oral</b><span class="val fr">'+esc(p.fr)+'</span></div>';
+  box.innerHTML=html;
+}
+mWord.addEventListener("input", renderPron);
+mRead.addEventListener("input", renderPron);
+mRomaji.addEventListener("input", renderPron);
+mType.addEventListener("change",function(){ fillThemeSelect(mTheme,mType.value,false); mNewWrap.hidden=true; });
+mTheme.addEventListener("change",function(){ mNewWrap.hidden=mTheme.value!=="__new__"; if(!mNewWrap.hidden) mNew.focus(); });
+
+function openModal(id){
+  editing=id||null;
+  fillTypeSelect(mType,false);
+  if(editing){
+    var w=words.filter(function(x){return x.id===editing;})[0];
+    if(!w) return;
+    document.getElementById("m-title").textContent="Détail du mot";
+    mWord.value=w.word; mRead.value=w.reading||""; mTrans.value=w.translation; mRomaji.value=w.romaji||"";
+    mType.value=w.type; fillThemeSelect(mTheme,w.type,false,w.theme);
+    document.getElementById("m-delete").hidden=false;
+  } else {
+    document.getElementById("m-title").textContent="Nouveau mot";
+    mWord.value=""; mRead.value=""; mTrans.value=""; mRomaji.value="";
+    mType.value=currentType||"nom"; fillThemeSelect(mTheme,mType.value,false);
+    if(currentTheme!=="__all__") mTheme.value=currentTheme;
+    document.getElementById("m-delete").hidden=true;
+  }
+  mNewWrap.hidden=true; mNew.value="";
+  renderPron();
+  modal.hidden=false;
+  if(!editing) setTimeout(function(){ mWord.focus(); },60);
+}
+function closeModal(){ modal.hidden=true; editing=null; }
+document.getElementById("fab").addEventListener("click",function(){ openModal(null); });
+document.getElementById("m-cancel").addEventListener("click", closeModal);
+modal.addEventListener("click",function(e){ if(e.target===modal) closeModal(); });
+
+document.getElementById("m-save").addEventListener("click",function(){
+  var word=mWord.value.trim(), trans=mTrans.value.trim();
+  if(!word||!trans){ alert("Le mot japonais et la traduction sont obligatoires."); return; }
+  var theme = mTheme.value==="__new__" ? mNew.value.trim() : mTheme.value;
+  if(!theme){ alert("Donne un nom au nouveau thème."); return; }
+  if(editing){
+    var w=words.filter(function(x){return x.id===editing;})[0];
+    w.word=word; w.reading=mRead.value.trim(); w.translation=trans;
+    w.type=mType.value; w.theme=theme; w.romaji=mRomaji.value.trim();
+  } else {
+    words.push({id:"u"+Date.now()+Math.random().toString(36).slice(2,6), word:word,
+      reading:mRead.value.trim(), translation:trans, romaji:mRomaji.value.trim(),
+      type:mType.value, theme:theme, correct:0, wrong:0, createdAt:Date.now()});
+    currentType=mType.value;
+  }
+  commit(true); closeModal();
+  if(current==="list"){ renderChips(); renderList(); } else { renderHome(); }
+});
+document.getElementById("m-delete").addEventListener("click",function(){
+  if(!editing||!confirm("Supprimer ce mot du carnet ?")) return;
+  words=words.filter(function(x){return x.id!==editing;});
+  commit(true); closeModal(); renderChips(); renderList();
+});
+
+/* ============================================================
+   8. RÉVISION
+   ============================================================ */
+var qType=document.getElementById("q-type"), qTheme=document.getElementById("q-theme");
+var deck=[], idx=0, sess={ok:0,ko:0,missed:[]};
+function resetQuiz(){
+  document.getElementById("q-setup").hidden=false;
+  document.getElementById("q-play").hidden=true;
+  document.getElementById("q-done").hidden=true;
+  fillTypeSelect(qType,true);
+  if(currentType) qType.value=currentType;
+  fillThemeSelect(qTheme,qType.value,true);
+  updateQNote();
+}
+qType.addEventListener("change",function(){ fillThemeSelect(qTheme,qType.value,true); updateQNote(); });
+qTheme.addEventListener("change", updateQNote);
+function pool(){
+  var t=qType.value, th=qTheme.value;
+  return words.filter(function(w){
+    if(t!=="__all__"&&w.type!==t) return false;
+    if(th!=="__all__"&&w.theme!==th) return false;
+    return true;
+  });
+}
+function updateQNote(){
+  var n=pool().length;
+  document.getElementById("q-start").disabled=n===0;
+  document.getElementById("q-note").textContent = n===0 ? "Aucun mot ne correspond à cette sélection."
+    : n+" mot"+(n>1?"s":"")+" dans cette sélection.";
+}
+function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t;} return a; }
+
+document.getElementById("q-start").addEventListener("click",function(){
+  var p=pool();
+  if(document.getElementById("q-priority").checked){
+    p=p.slice().sort(function(a,b){
+      var sa=(a.wrong||0)*2-(a.correct||0), sb=(b.wrong||0)*2-(b.correct||0);
+      return sb!==sa ? sb-sa : Math.random()-0.5;
+    });
+  } else p=shuffle(p);
+  var len=parseInt(document.querySelector('input[name="len"]:checked').value,10);
+  if(len>0) p=p.slice(0,len);
+  var dir=document.querySelector('input[name="dir"]:checked').value;
+  deck=p.map(function(w){ return {w:w, d: dir==="mixed" ? (Math.random()<0.5?"jp-fr":"fr-jp") : dir}; });
+  idx=0; sess={ok:0,ko:0,missed:[]};
+  document.getElementById("q-setup").hidden=true;
+  document.getElementById("q-done").hidden=true;
+  document.getElementById("q-play").hidden=false;
+  showCard();
+});
+function showCard(){
+  var e=deck[idx], w=e.w;
+  document.getElementById("q-prog").textContent=(idx+1)+" / "+deck.length;
+  document.getElementById("q-bar").style.width=(idx/deck.length*100)+"%";
+  var qEl=document.getElementById("q-question"), aEl=document.getElementById("q-answer"),
+      rEl=document.getElementById("q-answer-rom");
+  document.getElementById("q-eyebrow").textContent=typeInfo(w.type).label+" · "+w.theme;
+  var p=pronunciation(w);
+  if(e.d==="jp-fr"){
+    qEl.className="q"; qEl.innerHTML=ruby(w);
+    aEl.className="a fr"; aEl.textContent=w.translation;
+    rEl.textContent="";
+  } else {
+    qEl.className="q fr"; qEl.textContent=w.translation;
+    aEl.className="a"; aEl.innerHTML=ruby(w);
+    rEl.textContent = p ? p.fr : "";
+  }
+  aEl.hidden=true; rEl.hidden=true;
+  document.getElementById("q-judge").hidden=true;
+  document.getElementById("q-reveal").hidden=false;
+}
+document.getElementById("q-reveal").addEventListener("click",function(){
+  document.getElementById("q-answer").hidden=false;
+  var r=document.getElementById("q-answer-rom");
+  r.hidden = !r.textContent;
+  document.getElementById("q-judge").hidden=false;
+  this.hidden=true;
+});
+function judge(ok){
+  var w=deck[idx].w, real=words.filter(function(x){return x.id===w.id;})[0];
+  if(real){ if(ok) real.correct=(real.correct||0)+1; else real.wrong=(real.wrong||0)+1; }
+  if(ok) sess.ok++; else { sess.ko++; sess.missed.push(w); }
+  commit(false);
+  idx++;
+  if(idx>=deck.length) finish(); else showCard();
+}
+document.getElementById("q-yes").addEventListener("click",function(){ judge(true); });
+document.getElementById("q-no").addEventListener("click",function(){ judge(false); });
+document.getElementById("q-quit").addEventListener("click",function(){
+  if(confirm("Arrêter cette séance ? Les réponses déjà données sont enregistrées.")) finish();
+});
+function finish(){
+  document.getElementById("q-play").hidden=true;
+  document.getElementById("q-done").hidden=false;
+  var tot=sess.ok+sess.ko;
+  document.getElementById("q-score").textContent= tot ? sess.ok+" / "+tot : "—";
+  document.getElementById("q-detail").textContent = tot===0 ? "Aucune réponse enregistrée."
+    : (sess.ko===0 ? "Sans faute. Impeccable." : sess.ko+" mot"+(sess.ko>1?"s":"")+" à retravailler.");
+  var rev=document.getElementById("q-review");
+  if(sess.missed.length){
+    rev.hidden=false;
+    document.getElementById("q-review-ul").innerHTML=sess.missed.map(function(w){
+      var p=pronunciation(w);
+      return "<li><b>"+esc(w.word)+"</b>"+(p?' <span style="color:var(--ink-soft)">'+esc(p.fr)+"</span>":"")+
+             " — "+esc(w.translation)+"</li>";
+    }).join("");
+  } else rev.hidden=true;
+  scheduleSync();
+  renderHome();
+}
+document.getElementById("q-again").addEventListener("click", resetQuiz);
+document.getElementById("q-home").addEventListener("click",function(){ currentType=null; renderHome(); show("home"); });
+
+/* ============================================================
+   9. SAUVEGARDE
+   ============================================================ */
+function download(name,text,mime){
+  var blob=new Blob([text],{type:mime||"application/json;charset=utf-8"});
+  var url=URL.createObjectURL(blob), a=document.createElement("a");
+  a.href=url; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); },1500);
+  meta.lastBackup=Date.now(); meta.pending=0; saveMeta(); renderSave(); renderSyncBar();
+}
+function txtVersion(){
+  var by={};
+  words.forEach(function(w){ by[w.type]=by[w.type]||{}; (by[w.type][w.theme]=by[w.type][w.theme]||[]).push(w); });
+  var L=["CARNET DE VOCABULAIRE JAPONAIS","Export du "+new Date().toLocaleDateString("fr-FR")+" — "+words.length+" mots",""];
+  ALL_TYPES.forEach(function(t){
+    if(!by[t.id]) return;
+    L.push("=== "+t.label.toUpperCase()+" ===","");
+    Object.keys(by[t.id]).sort().forEach(function(th){
+      L.push("-- "+th+" --");
+      by[t.id][th].forEach(function(w){
+        var p=pronunciation(w);
+        L.push(w.word+(w.reading?"  ["+w.reading+"]":"")+(p?"  ("+p.fr+")":"")+"  :  "+w.translation);
+      });
+      L.push("");
+    });
+  });
+  return L.join("\n");
+}
+document.getElementById("btn-export").addEventListener("click",function(){ download("carnet-japonais.json", payload()); });
+document.getElementById("btn-export-txt").addEventListener("click",function(){
+  download("carnet-japonais.txt", txtVersion(), "text/plain;charset=utf-8");
+});
+document.getElementById("btn-share").addEventListener("click",function(){
+  var file;
+  try{ file=new File([payload()],"carnet-japonais.json",{type:"application/json"}); }catch(e){}
+  if(file && navigator.canShare && navigator.canShare({files:[file]})){
+    navigator.share({files:[file], title:"Carnet de vocabulaire japonais"}).then(function(){
+      meta.lastBackup=Date.now(); meta.pending=0; saveMeta(); renderSave(); renderSyncBar();
+    }).catch(function(){});
+  } else {
+    alert("Le partage direct n'est pas disponible ici. Le fichier va être téléchargé à la place.");
+    download("carnet-japonais.json", payload());
+  }
+});
+document.getElementById("btn-import").addEventListener("click",function(){ document.getElementById("file-input").click(); });
+document.getElementById("file-input").addEventListener("change",function(e){
+  var f=e.target.files&&e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var data=JSON.parse(r.result), incoming=Array.isArray(data)?data:data.words;
+      if(!Array.isArray(incoming)) throw new Error("format");
+      var index={};
+      words.forEach(function(w){ index[w.type+"|"+w.word+"|"+w.translation]=w; });
+      var added=0,merged=0;
+      incoming.forEach(function(w){
+        if(!w||!w.word||!w.translation) return;
+        var k=(w.type||"nom")+"|"+w.word+"|"+w.translation, ex=index[k];
+        if(ex){
+          if((w.correct||0)>(ex.correct||0)) ex.correct=w.correct||0;
+          if((w.wrong||0)>(ex.wrong||0)) ex.wrong=w.wrong||0;
+          if(!ex.reading&&w.reading) ex.reading=w.reading;
+          if(!ex.romaji&&w.romaji) ex.romaji=w.romaji;
+          merged++;
+        } else {
+          words.push({id:"i"+Date.now()+Math.random().toString(36).slice(2,6), word:w.word,
+            reading:w.reading||"", translation:w.translation, romaji:w.romaji||"",
+            type:w.type||"nom", theme:w.theme||"Divers", correct:w.correct||0, wrong:w.wrong||0,
+            createdAt:w.createdAt||Date.now()});
+          index[k]=words[words.length-1]; added++;
+        }
+      });
+      commit(true); renderHome(); renderSave();
+      alert("Import terminé.\n"+added+" mot(s) ajouté(s), "+merged+" déjà présent(s) et fusionné(s).");
+    }catch(err){ alert("Ce fichier n'a pas pu être lu. Vérifie qu'il s'agit bien d'un export .json du carnet."); }
+    e.target.value="";
+  };
+  r.readAsText(f);
+});
+document.getElementById("btn-persist").addEventListener("click",function(){
+  if(navigator.storage&&navigator.storage.persist){
+    navigator.storage.persist().then(function(g){
+      alert(g?"Accordé : le navigateur ne supprimera pas tes données automatiquement."
+             :"Refusé pour l'instant. Ajoute l'app à ton écran d'accueil, utilise-la quelques jours puis réessaie. En attendant, garde une copie exportée.");
+      renderSave();
+    });
+  } else alert("Ce navigateur ne propose pas cette option. La copie exportée reste ta sauvegarde fiable.");
+});
+document.getElementById("btn-reset").addEventListener("click",function(){
+  if(!confirm("Effacer tous les mots et recharger le carnet d'origine ? Tes ajouts personnels seront perdus.")) return;
+  if(!confirm("Confirmes-tu ? Cette action est définitive.")) return;
+  words=SEED.map(copy); commit(true); renderHome(); renderSave(); alert("Carnet réinitialisé.");
+});
+function renderSave(){
+  var aDesc=document.getElementById("acct-desc"), aBadge=document.getElementById("acct-badge"),
+      bIn=document.getElementById("btn-signin"), bOut=document.getElementById("btn-signout"),
+      sDesc=document.getElementById("sync-desc"), sBadge=document.getElementById("sync-badge"),
+      bSync=document.getElementById("btn-sync");
+
+  if(account){
+    aDesc.textContent="Ton carnet est rattaché à ce compte. Le même compte sur un autre appareil retrouvera les mêmes mots.";
+    aBadge.innerHTML='<span class="badge ok">Connecté'+(account.email?" · "+esc(account.email):"")+'</span>';
+    bIn.hidden=true; bOut.hidden=false;
+    sDesc.textContent="Un dossier « "+FOLDER_NAME+" » est créé dans ton Drive — place-le dans « "+PARENT_FOLDER_NAME+" » si tu veux, il reste retrouvable. Chaque ajout, modification ou révision y est envoyé automatiquement, quelques secondes après.";
+    bSync.disabled=false;
+    var n=meta.pending||0;
+    if(!navigator.onLine){
+      sBadge.innerHTML='<span class="badge warn">Hors ligne — '+(n?n+' modification'+(n>1?'s':'')+' en attente':'à jour localement')+'</span>';
+    } else if(n>0){
+      sBadge.innerHTML='<span class="badge warn">'+n+' modification'+(n>1?'s':'')+' à envoyer</span>';
+    } else if(meta.lastBackup){
+      sBadge.innerHTML='<span class="badge ok">Synchronisé le '+new Date(meta.lastBackup).toLocaleString("fr-FR",{dateStyle:"short",timeStyle:"short"})+'</span>';
+    } else {
+      sBadge.innerHTML='<span class="badge warn">Jamais synchronisé</span>';
+    }
+  } else {
+    aDesc.textContent="Connecte-toi pour synchroniser ton carnet avec Google Drive et le retrouver sur tes autres appareils.";
+    aBadge.innerHTML='<span class="badge warn">Non connecté</span>';
+    bIn.hidden=false; bOut.hidden=true;
+    sDesc.textContent="La synchronisation demande une connexion au compte Google. En attendant, ton carnet reste enregistré sur cet appareil.";
+    sBadge.innerHTML='<span class="badge warn">Synchronisation inactive</span>';
+    bSync.disabled=true;
+  }
+
+  var info=document.getElementById("storage-info");
+  var base=words.length+" mots enregistrés sur cet appareil.";
+  if(navigator.storage&&navigator.storage.persisted){
+    navigator.storage.persisted().then(function(p){
+      info.textContent=base+(p?" Stockage permanent actif."
+        :" Stockage classique : le navigateur pourrait les effacer s'il manque de place.");
+    });
+  } else info.textContent=base;
+}
+function renderSyncBar(){
+  var bar=document.getElementById("sync-bar");
+  var n=meta.pending||0;
+  if(account || syncDismissed || n<5 || current==="save"){ bar.hidden=true; return; }
+  document.getElementById("sync-text").textContent=n+" modification"+(n>1?"s":"")+" depuis ta dernière copie.";
+  bar.hidden=false;
+}
+document.getElementById("sync-hide").addEventListener("click",function(){ syncDismissed=true; renderSyncBar(); });
+document.getElementById("sync-go").addEventListener("click",function(){ renderSave(); show("save"); });
+
+/* ============================================================
+   10. INITIALISATION
+   ============================================================ */
+load();
+loadSession();
+renderHome();
+renderSave();
+if(navigator.storage&&navigator.storage.persist) navigator.storage.persist();
+
+/* Écran de garde : on demande la connexion, sauf si une session récente existe.
+   Dans ce cas on tente un renouvellement silencieux du jeton et on synchronise. */
+if(!account){
+  openGate();
+} else if(sessionValid()){
+  closeGate();
+  if(navigator.onLine){
+    var waitGis=setInterval(function(){
+      if(!gisReady()) return;
+      clearInterval(waitGis);
+      getToken(false).then(function(){ return sync(false); }).catch(function(){
+        chip("Reconnexion nécessaire","err");
+      });
+    },300);
+    setTimeout(function(){ clearInterval(waitGis); },12000);
+  }
+} else {
+  openGate();
+  document.getElementById("gate-note").textContent=
+    "Ta session hors ligne a expiré. Reconnecte-toi pour continuer à synchroniser.";
+}
+
+window.addEventListener("beforeunload", saveLocal);
+document.addEventListener("visibilitychange", function(){
+  if(document.hidden){ saveLocal(); }
+  else if(account && navigator.onLine && (meta.pending||0)>0){ scheduleSync(); }
+});
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("./sw.js").catch(function(){});
+  });
+}
+})();
+</script>
+</body>
+</html>
