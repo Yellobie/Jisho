@@ -262,6 +262,8 @@
   .sync-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--gold);}
   .sync-chip.err .dot{background:#E89A9A;}
   .sync-chip.ok .dot{background:#9BD3B2;}
+  .sync-chip.act{cursor:pointer;border-color:var(--gold);}
+  .sync-chip.act .dot{background:#E89A9A;}
   /* type="search" evite le classement autofill de Chrome ; on neutralise
      en revanche l'habillage natif que certains navigateurs y ajoutent. */
   .search-wrap input[type="search"]{-webkit-appearance:none;appearance:none;}
@@ -687,19 +689,21 @@ function commit(isContentChange){
 /* ============================================================
    3. COMPTE GOOGLE ET SYNCHRONISATION DRIVE
    ============================================================ */
-var APP_VERSION="2026.10.20b";
+var APP_VERSION="2026.10.20c";
 var CLIENT_ID="474488153091-s3f5gret33s88dbhf085ortmj1srmkn1.apps.googleusercontent.com";
 var SCOPE="https://www.googleapis.com/auth/drive.file";
 var FOLDER_NAME="Jisho";
 var PARENT_FOLDER_NAME="Sauvegarde";
 var FILE_NAME="carnet-japonais.json";
-var SESSION_DAYS=30;
-
-var SESS="jisho-session", BASE="jisho-base";
+/* La session est permanente : une fois connecté, l'écran Google ne revient
+   que si tu te déconnectes volontairement. Le téléphone est déjà protégé
+   par son propre verrouillage. */
+var SESS="jisho-session", BASE="jisho-base", TOK="jisho-token";
 var tokenClient=null, accessToken=null, tokenExpiry=0;
 var account=null;          /* {email, ts} */
 var driveFolderId=null, driveFileId=null;
 var syncing=false, syncQueued=false, autoSyncTimer=null, syncError="";
+var needAuth=false, refreshTimer=null;
 var pendingConflicts=null, conflictChoices=null, conflictResolve=null;
 
 function loadSession(){
@@ -709,13 +713,28 @@ function saveSession(){
   try{ localStorage.setItem(SESS, JSON.stringify(account)); }catch(e){}
 }
 function clearSession(){
-  account=null; accessToken=null; tokenExpiry=0; driveFileId=null; driveFolderId=null;
+  account=null; driveFileId=null; driveFolderId=null; clearToken();
   try{ localStorage.removeItem(SESS); localStorage.removeItem(BASE); }catch(e){}
 }
-function sessionValid(){
-  if(!account || !account.ts) return false;
-  return (Date.now()-account.ts) < SESSION_DAYS*86400000;
+function sessionValid(){ return !!account; }
+
+/* Le jeton Google (valable une heure) est conservé : rouvrir l'app dans
+   l'heure ne déclenche aucune demande à Google. */
+function loadToken(){
+  try{
+    var t=JSON.parse(localStorage.getItem(TOK)||"null");
+    if(t && t.token && t.expiry>Date.now()+60000){ accessToken=t.token; tokenExpiry=t.expiry; }
+  }catch(e){}
 }
+function saveToken(){
+  try{ localStorage.setItem(TOK, JSON.stringify({token:accessToken, expiry:tokenExpiry})); }catch(e){}
+}
+function clearToken(){
+  accessToken=null; tokenExpiry=0; clearTimeout(refreshTimer);
+  try{ localStorage.removeItem(TOK); }catch(e){}
+}
+function tokenFresh(){ return !!accessToken && Date.now()<tokenExpiry-60000; }
+
 /* Instantané de la dernière version commune aux deux côtés */
 function getBase(){
   try{ return JSON.parse(localStorage.getItem(BASE)||"null"); }catch(e){ return null; }
@@ -745,13 +764,16 @@ function initTokenClient(){
     client_id:CLIENT_ID, scope:SCOPE, callback:function(){}
   });
 }
-/* interactive=true autorise l'ouverture d'une fenêtre Google ; false = renouvellement silencieux */
+/* Demande de jeton. Comme dans Mirabilis : jamais d'écran de consentement
+   forcé, et l'adresse du compte est transmise à Google pour qu'il le
+   reconnaisse sans afficher le choix du compte. interactive=true signifie
+   que la demande suit un appui de ta part : le navigateur autorise alors
+   la petite fenêtre Google. Sans appui, elle peut être bloquée : on
+   abandonne vite au lieu de rester suspendu. */
 var tokenInFlight=null;
 function getToken(interactive){
-  if(accessToken && Date.now()<tokenExpiry-60000) return Promise.resolve(accessToken);
+  if(tokenFresh()) return Promise.resolve(accessToken);
   if(!navigator.onLine) return Promise.reject(new Error("offline"));
-  /* Une seule demande de jeton à la fois : deux appels simultanés
-     écraseraient mutuellement le callback du client GIS. */
   if(tokenInFlight) return tokenInFlight;
   tokenInFlight=new Promise(function(resolve, reject){
     initTokenClient();
@@ -759,12 +781,15 @@ function getToken(interactive){
     var done=false;
     var guard=setTimeout(function(){
       if(!done){ done=true; reject(new Error("timeout")); }
-    }, 60000);
+    }, interactive ? 120000 : 12000);
     tokenClient.callback=function(resp){
       if(done) return; done=true; clearTimeout(guard);
       if(resp && resp.access_token){
         accessToken=resp.access_token;
-        tokenExpiry=Date.now()+((resp.expires_in||3600)*1000);
+        tokenExpiry=Date.now()+((Number(resp.expires_in)||3300)*1000);
+        saveToken();
+        needAuth=false;
+        scheduleRefresh();
         resolve(accessToken);
       } else reject(new Error((resp&&resp.error)||"token"));
     };
@@ -772,12 +797,34 @@ function getToken(interactive){
       if(done) return; done=true; clearTimeout(guard);
       reject(new Error((err&&err.type)||"token"));
     };
-    try{
-      tokenClient.requestAccessToken({prompt: interactive ? "consent" : ""});
-    }catch(e){ if(!done){ done=true; clearTimeout(guard); reject(e); } }
+    var opts={prompt:""};
+    if(account && account.email){ opts.login_hint=account.email; opts.hint=account.email; }
+    try{ tokenClient.requestAccessToken(opts); }
+    catch(e){ if(!done){ done=true; clearTimeout(guard); reject(e); } }
   });
   tokenInFlight.catch(function(){}).then(function(){ tokenInFlight=null; });
   return tokenInFlight;
+}
+
+/* Renouvellement anticipé, 5 minutes avant l'expiration, tant que l'app est ouverte. */
+function scheduleRefresh(){
+  clearTimeout(refreshTimer);
+  if(!tokenExpiry) return;
+  var delay=tokenExpiry-Date.now()-5*60000;
+  if(delay<5000) delay=5000;
+  refreshTimer=setTimeout(function(){
+    if(document.hidden || !account) return;
+    accessToken=null;  /* force une vraie demande */
+    getToken(false).catch(function(){ /* on réessaiera à la prochaine synchro */ });
+  }, delay);
+}
+
+/* Quand le renouvellement silencieux échoue, la bulle reste affichée et
+   devient un bouton : un seul appui suffit à reconnecter. */
+function askReconnect(){
+  needAuth=true;
+  chip("Synchro en pause — touche ici pour reconnecter","act");
+  renderSave();
 }
 
 var lastError="";
@@ -797,7 +844,7 @@ function api(url, opts){
           (j.error.errors&&j.error.errors[0]?" ["+j.error.errors[0].reason+"]":""); }
       }catch(e){}
       lastError="HTTP "+r.status+" — "+String(detail).slice(0,300);
-      if(r.status===401){ accessToken=null; tokenExpiry=0; throw new Error("auth"); }
+      if(r.status===401){ clearToken(); throw new Error("auth"); }
       if(r.status===403 && /insufficient|scope/i.test(detail)) throw new Error("scope");
       if(r.status===403) throw new Error("forbidden");
       throw new Error("http"+r.status);
@@ -805,15 +852,14 @@ function api(url, opts){
   });
 }
 
-/* L'adresse email est purement cosmétique. Le scope drive.file ne donne pas
-   accès au profil : cet appel échoue le plus souvent, et c'est sans conséquence.
-   Il est volontairement fait hors de api() pour ne jamais toucher au jeton. */
+/* Adresse du compte, lue via l'API Drive (compatible avec drive.file,
+   contrairement au profil Google). Elle sert d'indice de connexion. */
 function fetchEmail(){
   if(!accessToken) return Promise.resolve("");
-  return fetch("https://www.googleapis.com/oauth2/v3/userinfo",{
+  return fetch("https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)",{
     headers:{"Authorization":"Bearer "+accessToken}
   }).then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(j){ return (j&&j.email)||""; })
+    .then(function(j){ return (j&&j.user&&j.user.emailAddress)||""; })
     .catch(function(){ return ""; });
 }
 
@@ -1007,9 +1053,17 @@ function sync(interactive){
   if(!account) return Promise.resolve(false);
   if(!navigator.onLine){ if(interactive) chip("Hors ligne — synchro reportée","err"); return Promise.resolve(false); }
   syncing=true;
-  chip("Synchronisation…");
 
-  return readRemote().then(function(remoteDoc){
+  return getToken(interactive).catch(function(e){
+    syncing=false;
+    var m=String(e&&e.message||e);
+    if(m==="offline") chip("Hors ligne — synchro reportée","err");
+    else askReconnect();
+    throw {handled:true};
+  }).then(function(){
+    chip("Synchronisation…");
+    return readRemote();
+  }).then(function(remoteDoc){
     var remote = remoteDoc ? (Array.isArray(remoteDoc)?remoteDoc:remoteDoc.words) : null;
     var base=getBase();
 
@@ -1045,11 +1099,11 @@ function sync(interactive){
     return true;
   }).catch(function(err){
     syncing=false;
+    if(err && err.handled) return false;
     var m=String(err&&err.message||err);
     syncError=m;
     if(m==="auth"||m==="token"||m==="timeout"){
-      chip("Reconnexion nécessaire","err");
-      if(interactive) signIn();
+      askReconnect();
     } else if(m==="offline"){
       chip("Hors ligne — synchro reportée","err");
     } else if(m==="scope"){
@@ -1083,12 +1137,13 @@ function signIn(){
     alert("La connexion Google n'a pas pu se charger. Vérifie ta connexion internet puis réessaie.");
     return;
   }
+  accessToken=null;
   getToken(true).then(function(){
-    account={email:"", ts:Date.now()};
+    if(!account) account={email:"", ts:Date.now()};
     saveSession();
+    needAuth=false;
     closeGate();
     renderSave();
-    /* L'email est récupéré en arrière-plan, sans jamais bloquer la synchro. */
     fetchEmail().then(function(email){
       if(email && account){ account.email=email; saveSession(); renderSave(); }
     });
@@ -1133,6 +1188,9 @@ document.getElementById("btn-diag-copy").addEventListener("click", function(){
   else prompt("Copie ce texte :", t);
 });
 
+document.getElementById("sync-chip").addEventListener("click", function(){
+  if(needAuth) signIn();
+});
 window.addEventListener("online", function(){ if(account) scheduleSync(); });
 
 /* ============================================================
@@ -1628,32 +1686,31 @@ renderHome();
 renderSave();
 if(navigator.storage&&navigator.storage.persist) navigator.storage.persist();
 
-/* Écran de garde : on demande la connexion, sauf si une session récente existe.
-   Dans ce cas on tente un renouvellement silencieux du jeton et on synchronise. */
+/* Écran de garde : seulement si aucun compte n'a jamais été connecté ici. */
+loadToken();
 if(!account){
   openGate();
-} else if(sessionValid()){
+} else {
   closeGate();
+  if(tokenFresh()) scheduleRefresh();
   if(navigator.onLine){
     var waitGis=setInterval(function(){
       if(!gisReady()) return;
       clearInterval(waitGis);
-      getToken(false).then(function(){ return sync(false); }).catch(function(){
-        chip("Reconnexion nécessaire","err");
-      });
+      initTokenClient();
+      sync(false);
     },300);
     setTimeout(function(){ clearInterval(waitGis); },12000);
   }
-} else {
-  openGate();
-  document.getElementById("gate-note").textContent=
-    "Ta session hors ligne a expiré. Reconnecte-toi pour continuer à synchroniser.";
 }
 
 window.addEventListener("beforeunload", saveLocal);
 document.addEventListener("visibilitychange", function(){
   if(document.hidden){ saveLocal(); }
-  else if(account && navigator.onLine && (meta.pending||0)>0){ scheduleSync(); }
+  else if(account && navigator.onLine){
+    if(tokenFresh()) scheduleRefresh();
+    if((meta.pending||0)>0) scheduleSync();
+  }
 });
 
 if("serviceWorker" in navigator){
