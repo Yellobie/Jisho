@@ -4,7 +4,7 @@
    en cache : ils échouent proprement hors ligne et la synchronisation
    reprend au retour de la connexion. */
 
-var CACHE = "jisho-v5";
+var CACHE = "jisho-v6";
 
 var ASSETS = [
   "./",
@@ -89,6 +89,21 @@ self.addEventListener("fetch", function (e) {
           });
         });
       })
+    );
+    return;
+  }
+
+  /* Manifeste : réseau d'abord, pour que Chrome voie tout de suite
+     l'identité d'application à jour ; le cache ne sert qu'hors ligne. */
+  if (url.origin === self.location.origin && url.pathname.endsWith("/manifest.json")) {
+    e.respondWith(
+      fetch(req).then(function (res) {
+        if (res && res.status === 200) {
+          var clone = res.clone();
+          caches.open(CACHE).then(function (c) { c.put(req, clone); });
+        }
+        return res;
+      }).catch(function () { return caches.match(req); })
     );
     return;
   }

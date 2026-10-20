@@ -1,4 +1,5 @@
 {
+  "id": "./jisho-app-v2",
   "name": "Jisho — carnet de vocabulaire japonais",
   "short_name": "Jisho",
   "description": "Carnet de vocabulaire japonais personnel, avec révision et synchronisation Google Drive.",
