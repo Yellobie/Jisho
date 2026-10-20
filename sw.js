@@ -4,7 +4,7 @@
    en cache : ils échouent proprement hors ligne et la synchronisation
    reprend au retour de la connexion. */
 
-var CACHE = "jisho-v2";
+var CACHE = "jisho-v3";
 
 var ASSETS = [
   "./",
@@ -54,12 +54,40 @@ self.addEventListener("fetch", function (e) {
     return;
   }
 
-  /* Navigation : on sert la page en cache d'abord, pour une ouverture
-     instantanée et un démarrage possible en mode avion. */
+  /* Navigation : réseau d'abord, avec un délai court, puis le cache.
+     Servir le cache en priorité figerait la version installée tant que
+     la version du cache n'est pas changée à la main ; ainsi une mise en
+     ligne est prise en compte au rechargement suivant, et le mode avion
+     reste instantané puisque la requête échoue aussitôt. */
   if (req.mode === "navigate") {
     e.respondWith(
-      caches.match("./index.html").then(function (hit) {
-        return hit || fetch(req);
+      new Promise(function (resolve) {
+        var settled = false;
+        var fallback = setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          caches.match("./index.html").then(function (hit) {
+            resolve(hit || fetch(req));
+          });
+        }, 2500);
+
+        fetch(req).then(function (res) {
+          if (settled) return;
+          settled = true;
+          clearTimeout(fallback);
+          if (res && res.status === 200) {
+            var clone = res.clone();
+            caches.open(CACHE).then(function (c) { c.put("./index.html", clone); });
+          }
+          resolve(res);
+        }).catch(function () {
+          if (settled) return;
+          settled = true;
+          clearTimeout(fallback);
+          caches.match("./index.html").then(function (hit) {
+            resolve(hit || new Response("Hors ligne", { status: 503 }));
+          });
+        });
       })
     );
     return;
