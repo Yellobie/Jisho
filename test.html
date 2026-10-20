@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jisho — diagnostic clavier</title>
+<style>
+  :root{
+    --indigo-900:#131B30; --indigo-800:#1B2740; --indigo-700:#243452;
+    --paper:#F5F0E3; --ink:#232323; --ink-soft:#5F5A4A;
+    --hanko:#B33A3A; --gold:#C9A661; --jade:#5C8A72;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--indigo-900);color:var(--paper);
+    font-family:Georgia,serif;display:flex;justify-content:center;}
+  .wrap{width:100%;max-width:520px;padding:18px 16px 60px;}
+  h1{font-size:19px;margin:0 0 4px;}
+  .lead{font-size:13.5px;line-height:1.55;color:rgba(245,240,227,.75);margin:0 0 6px;}
+  .lead b{color:var(--gold);}
+  .steps{background:var(--indigo-800);border:1px solid rgba(201,166,97,.28);
+    border-radius:10px;padding:13px 15px;margin:14px 0 20px;font-size:13.5px;line-height:1.6;}
+  .steps ol{margin:6px 0 0;padding-left:20px;}
+  .case{background:var(--paper);color:var(--ink);border-radius:10px;
+    padding:14px 15px;margin-bottom:12px;border-left:4px solid var(--gold);}
+  .case h2{font-size:14.5px;margin:0 0 3px;}
+  .case p{font-size:12.5px;color:var(--ink-soft);margin:0 0 10px;line-height:1.5;}
+  .case input{width:100%;padding:11px 12px;border-radius:8px;
+    border:1px solid rgba(35,35,35,.25);background:#fff;font-family:Georgia,serif;
+    font-size:16px;color:var(--ink);}
+  .echo{font-size:11.5px;color:var(--ink-soft);margin-top:7px;min-height:15px;font-style:italic;}
+  .A{border-left-color:var(--jade);}
+  .B{border-left-color:var(--hanko);}
+  .C{border-left-color:var(--gold);}
+  .D{border-left-color:#7B6CA8;}
+  .E{border-left-color:#4A90A4;}
+  .toggle{background:var(--indigo-800);border:1px solid rgba(201,166,97,.28);
+    border-radius:10px;padding:13px 15px;margin-bottom:20px;font-size:13.5px;}
+  .toggle label{display:flex;align-items:center;gap:10px;cursor:pointer;line-height:1.5;}
+  .toggle input{width:20px;height:20px;accent-color:var(--hanko);flex:none;}
+  .note{font-size:12px;color:rgba(245,240,227,.55);margin-top:18px;line-height:1.6;}
+  #log{background:var(--indigo-700);border-radius:8px;padding:10px 12px;margin-top:10px;
+    font-family:ui-monospace,monospace;font-size:11px;line-height:1.5;
+    color:rgba(245,240,227,.8);max-height:140px;overflow-y:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Diagnostic du changement de clavier</h1>
+  <p class="lead">Chaque champ ci-dessous est câblé différemment. Le but est de trouver <b>lequel laisse le sélecteur de clavier rester ouvert</b>.</p>
+
+  <div class="steps">
+    <b>Marche à suivre, pour chaque champ :</b>
+    <ol>
+      <li>Touche le champ pour ouvrir le clavier</li>
+      <li>Maintiens la barre d'espace</li>
+      <li>Note si le sélecteur <b>reste affiché</b> ou <b>disparaît aussitôt</b></li>
+    </ol>
+    Puis recommence avec la case du dessous cochée.
+  </div>
+
+  <div class="toggle">
+    <label>
+      <input type="checkbox" id="vis">
+      <span>Activer la surveillance d'arrière-plan<br>
+      <span style="color:rgba(245,240,227,.55);font-size:12px">(visibilitychange + beforeunload, présents dans les trois apps)</span></span>
+    </label>
+    <div id="log">journal vide</div>
+  </div>
+
+  <div class="case A">
+    <h2>A — Champ nu</h2>
+    <p>Aucun code attaché. C'est la référence : s'il échoue aussi, la cause n'est pas dans mon code.</p>
+    <input type="text" placeholder="Teste ici">
+    <div class="echo"></div>
+  </div>
+
+  <div class="case B">
+    <h2>B — Redessine à chaque frappe</h2>
+    <p>Reproduit la recherche et le calcul de prononciation : le contenu voisin est reconstruit à chaque caractère.</p>
+    <input type="text" placeholder="Teste ici">
+    <div class="echo"></div>
+  </div>
+
+  <div class="case C">
+    <h2>C — Redessine avec un délai</h2>
+    <p>Même chose, mais le redessin attend 250 ms d'inactivité. C'est le correctif envisagé.</p>
+    <input type="text" placeholder="Teste ici">
+    <div class="echo"></div>
+  </div>
+
+  <div class="case D">
+    <h2>D — Écrit dans la mémoire à chaque frappe</h2>
+    <p>Reproduit la sauvegarde locale immédiate des trois apps.</p>
+    <input type="text" placeholder="Teste ici">
+    <div class="echo"></div>
+  </div>
+
+  <div class="case E">
+    <h2>E — Champ dans une fenêtre superposée</h2>
+    <p>Reproduit la fiche d'ajout : conteneur en position fixe par-dessus la page.</p>
+    <button id="openE" style="width:100%;padding:12px;border-radius:8px;border:none;
+      background:var(--hanko);color:var(--paper);font-family:Georgia,serif;font-size:14.5px;">
+      Ouvrir la fenêtre</button>
+  </div>
+
+  <p class="note">Dis-moi simplement quelles lettres fonctionnent et lesquelles échouent — par exemple « A et C marchent, B et D non ». Ça suffit à identifier la cause.</p>
+</div>
+
+<div id="overlay" style="position:fixed;inset:0;background:rgba(8,12,22,.72);
+  display:none;align-items:flex-end;justify-content:center;z-index:50;">
+  <div style="width:100%;max-width:520px;background:var(--paper);color:var(--ink);
+    border-radius:16px 16px 0 0;padding:20px 18px 26px;">
+    <h2 style="font-size:16px;margin:0 0 10px;">Champ en fenêtre superposée</h2>
+    <input type="text" placeholder="Teste ici" style="width:100%;padding:11px 12px;
+      border-radius:8px;border:1px solid rgba(35,35,35,.25);background:#fff;
+      font-family:Georgia,serif;font-size:16px;color:var(--ink);">
+    <button id="closeE" style="width:100%;margin-top:12px;padding:12px;border-radius:8px;
+      border:none;background:#E6DFCC;color:var(--ink);font-family:Georgia,serif;
+      font-size:14.5px;">Fermer</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var cases=document.querySelectorAll(".case");
+  function echoOf(c){ return c.querySelector(".echo"); }
+
+  /* A : volontairement sans aucun écouteur. */
+
+  /* B : reconstruction du voisinage à chaque frappe, comme renderList/renderPron. */
+  var B=cases[1], bIn=B.querySelector("input"), bEcho=echoOf(B);
+  bIn.addEventListener("input", function(){
+    bEcho.innerHTML="";
+    var frag=document.createDocumentFragment();
+    for(var i=0;i<40;i++){
+      var s=document.createElement("span");
+      s.textContent=(bIn.value||"—")+" ";
+      frag.appendChild(s);
+    }
+    bEcho.appendChild(frag);
+    bEcho.textContent="redessiné : "+(bIn.value.length)+" caractère(s)";
+  });
+
+  /* C : même traitement, mais différé. */
+  var C=cases[2], cIn=C.querySelector("input"), cEcho=echoOf(C), cT=null;
+  cIn.addEventListener("input", function(){
+    clearTimeout(cT);
+    cT=setTimeout(function(){
+      cEcho.innerHTML="";
+      var frag=document.createDocumentFragment();
+      for(var i=0;i<40;i++){
+        var s=document.createElement("span");
+        s.textContent=(cIn.value||"—")+" ";
+        frag.appendChild(s);
+      }
+      cEcho.appendChild(frag);
+      cEcho.textContent="redessiné après pause : "+(cIn.value.length)+" caractère(s)";
+    },250);
+  });
+
+  /* D : écriture immédiate dans le stockage local. */
+  var D=cases[3], dIn=D.querySelector("input"), dEcho=echoOf(D);
+  dIn.addEventListener("input", function(){
+    try{
+      localStorage.setItem("diag-test", JSON.stringify({v:dIn.value, t:Date.now()}));
+      dEcho.textContent="enregistré ("+dIn.value.length+" caractère(s))";
+    }catch(e){ dEcho.textContent="stockage indisponible"; }
+  });
+
+  /* E : champ dans une surcouche en position fixe. */
+  var ov=document.getElementById("overlay");
+  document.getElementById("openE").addEventListener("click", function(){
+    ov.style.display="flex";
+    setTimeout(function(){ ov.querySelector("input").focus(); },60);
+  });
+  document.getElementById("closeE").addEventListener("click", function(){
+    ov.style.display="none";
+  });
+
+  /* Surveillance d'arrière-plan, activable : c'est le soupçon principal,
+     car ces écouteurs existent dans les trois applications. */
+  var log=document.getElementById("log"), lines=[];
+  function note(t){
+    var d=new Date();
+    lines.unshift(d.toLocaleTimeString("fr-FR")+" — "+t);
+    log.textContent=lines.slice(0,12).join("\n");
+  }
+  function onVis(){ note(document.hidden ? "page masquée" : "page revenue au premier plan"); }
+  function onUnload(){ /* volontairement vide */ }
+
+  document.getElementById("vis").addEventListener("change", function(){
+    if(this.checked){
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("beforeunload", onUnload);
+      note("surveillance activée");
+    } else {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("beforeunload", onUnload);
+      note("surveillance désactivée");
+    }
+  });
+})();
+</script>
+</body>
+</html>
