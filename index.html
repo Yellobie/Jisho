@@ -312,8 +312,8 @@
     <div id="q-setup">
       <div class="panel">
         <h3>Que veux-tu réviser ?</h3>
-        <label class="field">Catégorie<select id="q-type"></select></label>
-        <label class="field">Thème<select id="q-theme"></select></label>
+        <label class="field" data-slot="q-type">Catégorie</label>
+        <label class="field" data-slot="q-theme">Thème</label>
         <h3 style="margin-top:4px">Dans quel sens ?</h3>
         <div class="radio-list">
           <label><input type="radio" name="dir" value="jp-fr" checked> 日 → 仏 &nbsp;· je vois le japonais</label>
@@ -467,8 +467,8 @@
     <label class="field" data-slot="reading">読み方 — Lecture en kana (sert à calculer la prononciation)</label>
     <label class="field" data-slot="trans">Traduction</label>
     <div class="two">
-      <label class="field">Catégorie<select id="m-type"></select></label>
-      <label class="field">Thème<select id="m-theme"></select></label>
+      <label class="field" data-slot="m-type">Catégorie</label>
+      <label class="field" data-slot="m-theme">Thème</label>
     </div>
     <label class="field" id="m-newtheme-wrap" data-slot="newtheme" hidden>Nom du nouveau thème</label>
     <label class="field" data-slot="romaji">Prononciation personnalisée (facultatif — laisse vide pour le calcul automatique)</label>
@@ -687,7 +687,7 @@ function commit(isContentChange){
 /* ============================================================
    3. COMPTE GOOGLE ET SYNCHRONISATION DRIVE
    ============================================================ */
-var APP_VERSION="2026.10.20";
+var APP_VERSION="2026.10.20b";
 var CLIENT_ID="474488153091-s3f5gret33s88dbhf085ortmj1srmkn1.apps.googleusercontent.com";
 var SCOPE="https://www.googleapis.com/auth/drive.file";
 var FOLDER_NAME="Jisho";
@@ -1198,7 +1198,10 @@ document.getElementById("go-quiz-all").addEventListener("click",function(){ rese
    Un champ présent dès l'analyse de la page, porteur d'un id ou d'un
    attribut autocomplete, est classé par Chrome, qui déclenche alors la
    barre d'autofill d'Android (mots de passe, cartes, adresses). Créé
-   après coup et dépourvu de ces attributs, il passe inaperçu. */
+   après coup et dépourvu de ces attributs, il passe inaperçu.
+   Les menus déroulants suivent la même règle : un <select> écrit dans
+   le document, voisin de champs texte, évoque pour Chrome le « pays »
+   d'un formulaire d'adresse et suffit à classer tout le groupe. */
 function makeInput(slot, placeholder){
   var host=document.querySelector('[data-slot="'+slot+'"]');
   var i=document.createElement("input");
@@ -1210,6 +1213,12 @@ function makeInput(slot, placeholder){
   i.setAttribute("enterkeyhint", slot==="search" ? "search" : "next");
   host.appendChild(i);
   return i;
+}
+function makeSelect(slot){
+  var host=document.querySelector('[data-slot="'+slot+'"]');
+  var s=document.createElement("select");
+  host.appendChild(s);
+  return s;
 }
 var searchEl=makeInput("search","Chercher un mot, une lecture, une traduction…");
 
@@ -1263,7 +1272,7 @@ var modal=document.getElementById("modal"),
     mWord=makeInput("word","食べる"),
     mRead=makeInput("reading","たべる"),
     mTrans=makeInput("trans","manger"),
-    mType=document.getElementById("m-type"), mTheme=document.getElementById("m-theme"),
+    mType=makeSelect("m-type"), mTheme=makeSelect("m-theme"),
     mNewWrap=document.getElementById("m-newtheme-wrap"),
     mNew=makeInput("newtheme","Ex. Cuisine"),
     mRomaji=makeInput("romaji","ké-do");
@@ -1351,7 +1360,7 @@ document.getElementById("m-delete").addEventListener("click",function(){
 /* ============================================================
    8. RÉVISION
    ============================================================ */
-var qType=document.getElementById("q-type"), qTheme=document.getElementById("q-theme");
+var qType=makeSelect("q-type"), qTheme=makeSelect("q-theme");
 var deck=[], idx=0, sess={ok:0,ko:0,missed:[]};
 function resetQuiz(){
   document.getElementById("q-setup").hidden=false;
