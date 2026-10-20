@@ -300,7 +300,7 @@
   </section>
 
   <section class="screen" id="s-list">
-    <div class="search-wrap"><input id="search" type="search" enterkeyhint="search" placeholder="Chercher un mot, une lecture, une traduction…" name="jisho-q" autocomplete="jisho-q" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore></div>
+    <div class="search-wrap" data-slot="search"></div>
     <div class="chips" id="theme-chips"></div>
     <div class="word-list" id="word-list"></div>
     <div class="empty" id="list-empty" hidden>
@@ -463,25 +463,15 @@
       <div class="jp" id="pron-jp"></div>
       <div class="rows" id="pron-rows"></div>
     </div>
-    <label class="field">単語 — Mot en japonais
-      <input id="m-word" type="text" placeholder="食べる" name="jisho-a" autocomplete="jisho-a" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore>
-    </label>
-    <label class="field">読み方 — Lecture en kana (sert à calculer la prononciation)
-      <input id="m-reading" type="text" placeholder="たべる" name="jisho-b" autocomplete="jisho-b" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore>
-    </label>
-    <label class="field">Traduction
-      <input id="m-trans" type="text" placeholder="manger" name="jisho-c" autocomplete="jisho-c" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore>
-    </label>
+    <label class="field" data-slot="word">単語 — Mot en japonais</label>
+    <label class="field" data-slot="reading">読み方 — Lecture en kana (sert à calculer la prononciation)</label>
+    <label class="field" data-slot="trans">Traduction</label>
     <div class="two">
       <label class="field">Catégorie<select id="m-type"></select></label>
       <label class="field">Thème<select id="m-theme"></select></label>
     </div>
-    <label class="field" id="m-newtheme-wrap" hidden>Nom du nouveau thème
-      <input id="m-newtheme" type="text" placeholder="Ex. Cuisine" name="jisho-d" autocomplete="jisho-d" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore>
-    </label>
-    <label class="field">Prononciation personnalisée (facultatif — laisse vide pour le calcul automatique)
-      <input id="m-romaji" type="text" placeholder="ké-do" name="jisho-e" autocomplete="jisho-e" autocapitalize="off" autocorrect="off" spellcheck="false" data-form-type="other" data-lpignore="true" data-1p-ignore>
-    </label>
+    <label class="field" id="m-newtheme-wrap" data-slot="newtheme" hidden>Nom du nouveau thème</label>
+    <label class="field" data-slot="romaji">Prononciation personnalisée (facultatif — laisse vide pour le calcul automatique)</label>
     <div class="sheet-actions">
       <button class="destructive" id="m-delete" hidden>Supprimer</button>
       <button class="ghost" id="m-cancel">Annuler</button>
@@ -697,6 +687,7 @@ function commit(isContentChange){
 /* ============================================================
    3. COMPTE GOOGLE ET SYNCHRONISATION DRIVE
    ============================================================ */
+var APP_VERSION="2026.10.20";
 var CLIENT_ID="474488153091-s3f5gret33s88dbhf085ortmj1srmkn1.apps.googleusercontent.com";
 var SCOPE="https://www.googleapis.com/auth/drive.file";
 var FOLDER_NAME="Jisho";
@@ -1203,7 +1194,25 @@ document.getElementById("go-quiz-all").addEventListener("click",function(){ rese
 /* ============================================================
    6. LISTE
    ============================================================ */
-var searchEl=document.getElementById("search");
+/* Les champs de saisie sont créés ici, et non écrits dans le HTML.
+   Un champ présent dès l'analyse de la page, porteur d'un id ou d'un
+   attribut autocomplete, est classé par Chrome, qui déclenche alors la
+   barre d'autofill d'Android (mots de passe, cartes, adresses). Créé
+   après coup et dépourvu de ces attributs, il passe inaperçu. */
+function makeInput(slot, placeholder){
+  var host=document.querySelector('[data-slot="'+slot+'"]');
+  var i=document.createElement("input");
+  i.type="text";
+  if(placeholder) i.placeholder=placeholder;
+  i.autocapitalize="off";
+  i.spellcheck=false;
+  i.setAttribute("autocorrect","off");
+  i.setAttribute("enterkeyhint", slot==="search" ? "search" : "next");
+  host.appendChild(i);
+  return i;
+}
+var searchEl=makeInput("search","Chercher un mot, une lecture, une traduction…");
+
 function openType(t){ currentType=t; currentTheme="__all__"; searchEl.value=""; renderChips(); renderList(); show("list"); }
 function renderChips(){
   var box=document.getElementById("theme-chips");
@@ -1250,11 +1259,14 @@ searchEl.addEventListener("input", renderList);
 /* ============================================================
    7. MODALE (détail / édition) AVEC PRONONCIATION
    ============================================================ */
-var modal=document.getElementById("modal"), mWord=document.getElementById("m-word"),
-    mRead=document.getElementById("m-reading"), mTrans=document.getElementById("m-trans"),
+var modal=document.getElementById("modal"),
+    mWord=makeInput("word","食べる"),
+    mRead=makeInput("reading","たべる"),
+    mTrans=makeInput("trans","manger"),
     mType=document.getElementById("m-type"), mTheme=document.getElementById("m-theme"),
-    mNewWrap=document.getElementById("m-newtheme-wrap"), mNew=document.getElementById("m-newtheme"),
-    mRomaji=document.getElementById("m-romaji");
+    mNewWrap=document.getElementById("m-newtheme-wrap"),
+    mNew=makeInput("newtheme","Ex. Cuisine"),
+    mRomaji=makeInput("romaji","ké-do");
 
 function fillTypeSelect(sel,withAll){
   sel.innerHTML=(withAll?'<option value="__all__">Toutes les catégories</option>':'')+
@@ -1580,7 +1592,7 @@ function renderSave(){
   } else dc.hidden=true;
 
   var info=document.getElementById("storage-info");
-  var base=words.length+" mots enregistrés sur cet appareil.";
+  var base="Version "+APP_VERSION+" · "+words.length+" mots enregistrés sur cet appareil.";
   if(navigator.storage&&navigator.storage.persisted){
     navigator.storage.persisted().then(function(p){
       info.textContent=base+(p?" Stockage permanent actif."
